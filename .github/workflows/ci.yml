@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - name: Flake checks (format, lint)
+        run: nix flake check
+      - name: Build the journal CLI
+        run: nix build .#default
+      - name: Smoke-test the CLI
+        run: nix run .#default -- help
