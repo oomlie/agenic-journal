@@ -18,12 +18,19 @@ agenic-journal/
 ├── scripts/
 │   ├── setup-hooks         # Enable hooks after cloning
 │   ├── new-day             # Scaffold a new daily entry
-│   └── log                 # One-liner quick log to today's entry
+│   ├── log                 # One-liner quick log to today's entry
+│   ├── rollover            # Carry unchecked tasks to today
+│   ├── week-review         # Generate weekly summary (run Sundays)
+│   ├── remember            # Resurface a random past entry
+│   └── habits              # Tally habit streaks for the month
 ├── templates/
 │   └── daily.md
+├── reviews/                # Weekly review files
+│   └── 2026-W28.md
 ├── 2026/
 │   ├── 07-july/
 │   │   ├── 2026-07-13.md
+│   │   ├── habits.md
 │   │   └── 2026-07-14.md
 │   └── 08-august/
 └── archive/
@@ -38,8 +45,6 @@ agenic-journal/
 ./scripts/setup-hooks
 ```
 
-This enables automated commit messages with timestamps and a lightweight journaling rhythm log.
-
 ### 2. Create Today's Entry
 
 ```bash
@@ -47,45 +52,67 @@ This enables automated commit messages with timestamps and a lightweight journal
 ./scripts/new-day 2026-07-15  # Creates entry for a specific date
 ```
 
-This scaffolds a new file from the template at the correct path:
-```
-2026/07-july/2026-07-13.md
-```
-
 ### 3. Log Quick Notes Throughout the Day
 
 ```bash
 ./scripts/log "got lunch at panda express"
-./scripts/log "meeting running 20 min late"
-./scripts.log "just shipped the feature" -t win
+./scripts/log "just shipped the feature" -t win
 ```
 
 Each note gets timestamped and appended to today's Log section:
 ```markdown
-## Log
-
 - 12:34 — got lunch at panda express
-- 14:52 — meeting running 20 min late
 - 17:08 — just shipped the feature #win
 ```
 
-Auto-commits with a short message: `[2026-07-13 17:08] just shipped the feature`
-
-**Options:**
-- `-d YYYY-MM-DD` — log to a specific date's entry
-- `-t tag` — add a tag: `#win`, `#struggle`, `#adhd`, `#deepwork`, `#health`
-- `-n` — append without committing (stage only, commit later)
-
-### 4. Journal & Commit
-
-Fill out the rest of your entry as you go. Commit whenever you want a snapshot:
+### 4. Roll Over Yesterday's Tasks
 
 ```bash
-git add .
-git commit  # Message auto-generated: "2026-07-13 — journal update (afternoon, 14:32)"
+./scripts/rollover          # Carry unchecked tasks → today
 ```
 
-The hooks detect journal files and auto-format your commit message with the date, time of day, and task progress.
+Yesterdays's `[ ]` tasks become today's "Rolled Over" priority block. The old tasks are marked `[>]` so you know they travelled.
+
+### 5. Weekly Review (Sunday afternoons)
+
+```bash
+./scripts/week-review       # Summarize the past 7 days
+```
+
+Generates a review file in `reviews/2026-W28.md` with:
+- Tasks completed/rolled stats
+- Average energy level
+- Top tags
+- All wins and struggles aggregated
+- Daily logs compiled
+- Habit check-in table (fill after running `./scripts/habits`)
+
+### 6. Memory Resurfacing
+
+```bash
+./scripts/remember          # Random entry from 30–90 days ago
+./scripts/remember --today  # Entry from exactly 1 year ago
+./scripts/remember 60 120   # Custom range (min max days back)
+```
+
+### 7. Habit Tracker
+
+Daily entries include a **Habits** section:
+```markdown
+## Habits
+- [ ] Exercise
+- [ ] Read
+- [ ] Meditate
+- [ ] Deep Work
+- [ ] Sleep 8h
+```
+
+Check them off as you go. Then tally:
+```bash
+./scripts/habits              # Current month's streaks
+./scripts/habits 2026 07      # Specific month
+./scripts/habits --fill       # Auto-fill latest weekly review table
+```
 
 ## Journal as Calendar
 
@@ -105,36 +132,18 @@ grep -r "keyword" 2026/
 cat .journal-log
 ```
 
-## Daily Entry Format
-
-See [templates/daily.md](templates/daily.md) for the full template. Each day includes:
-
-- **Morning**: Intentions, top 3 priorities, energy level
-- **Time Blocks**: Chunked sessions with focus tasks
-- **Log**: Stream-of-consciousness notes, distractions, wins
-- **Evening**: Reflection, gratitude, tomorrow's setup
-
 ## Git Hooks
 
 ### `prepare-commit-msg`
-When you commit a journal entry, this hook auto-generates the commit message:
-
+Auto-generates commit messages for journal entries:
 ```
 2026-07-13 — journal update (afternoon, 14:32)
 
 Tasks: 2 completed, 1 added
 ```
 
-It detects the time of day (morning/afternoon/evening), extracts the entry date from the filename, and counts your task progress.
-
 ### `post-commit`
-After each journal commit, a lightweight entry is appended to `.journal-log`:
-
-```
-[2026-07-13 14:32:00 +0000] a1b2c3d — 2026-07-13 — journal update (afternoon, 14:32)
-```
-
-This lets you track your journaling rhythm over time without heavy analytics.
+Appends a lightweight entry to `.journal-log` after each journal commit for rhythm tracking.
 
 ## Tips
 
@@ -142,3 +151,4 @@ This lets you track your journaling rhythm over time without heavy analytics.
 - **Phone + keyboard**: Works great with a mobile Git client (Working Copy, Termux) + Bluetooth keyboard
 - **A6 friendly**: The template is designed to feel like a pocket notebook — compact and scannable
 - **Tag entries**: Use `#adhd`, `#deepwork`, `#win`, `#struggle` for later filtering
+- **Sunday ritual**: Run `week-review` + `habits --fill` for a clean weekly retrospective

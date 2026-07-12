@@ -1,0 +1,118 @@
+#!/bin/bash
+#
+# rollover
+# Carries unchecked tasks from yesterday into today's entry.
+# Marks rolled-over tasks in yesterday's file with [>].
+#
+# Usage:
+#   ./scripts/rollover              # Roll yesterday → today
+#   ./scripts/rollover 2026-07-12   # Roll from a specific date
+#
+
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+
+if [ -z "$REPO_ROOT" ]; then
+    echo "Error: Not inside a Git repository."
+    exit 1
+fi
+
+# --- Determine dates ---
+
+if [ -n "${1:-}" ]; then
+    SOURCE_DATE="$1"
+    # Validate
+    if ! echo "$SOURCE_DATE" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+        echo "Error: Date must be YYYY-MM-DD format."
+        exit 1
+    fi
+    # Calculate next day for TARGET
+    TARGET_DATE=$(date -d "$SOURCE_DATE + 1 day" '+%Y-%m-%d' 2>/dev/null || date -v+1d -j -f '%Y-%m-%d' "$SOURCE_DATE" '+%Y-%m-%d' 2>/dev/null)
+else
+    TARGET_DATE=$(date '+%Y-%m-%d')
+    SOURCE_DATE=$(date -d "$TARGET_DATE - 1 day" '+%Y-%m-%d' 2>/dev/null || date -v-1d -j -f '%Y-%m-%d' "$TARGET_DATE" '+%Y-%m-%d' 2>/dev/null)
+fi
+
+# --- Resolve file paths ---
+
+resolve_path() {
+    local d="$1"
+    local y=$(echo "$d" | cut -d'-' -f1)
+    local m=$(echo "$d" | cut -d'-' -f2)
+    local month_name=$(date -d "$d" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$d" '+%B' 2>/dev/null)
+    if [ -z "$month_name" ]; then
+        case "$m" in
+            01) month_name="January" ;; 02) month_name="February" ;; 03) month_name="March" ;;
+            04) month_name="April" ;; 05) month_name="May" ;; 06) month_name="June" ;;
+            07) month_name="July" ;; 08) month_name="August" ;; 09) month_name="September" ;;
+            10) month_name="October" ;; 11) month_name="November" ;; 12) month_name="December" ;;
+        esac
+    fi
+    echo "$REPO_ROOT/$y/$m-$(echo "$month_name" | tr '[:upper:]' '[:lower:]')/$d.md"
+}
+
+SOURCE_FILE=$(resolve_path "$SOURCE_DATE")
+TARGET_FILE=$(resolve_path "$TARGET_DATE")
+
+# --- Check source exists ---
+
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "No entry found for $SOURCE_DATE. Nothing to roll over."
+    exit 0
+fi
+
+# --- Create today's entry if missing ---
+
+if [ ! -f "$TARGET_FILE" ]; then
+    echo "No entry for $TARGET_DATE. Creating one..."
+    "$REPO_ROOT/scripts/new-day" "$TARGET_DATE" >/dev/null
+fi
+
+# --- Extract unchecked tasks ---
+
+UNCHECKED=$(grep -nE '^\s*- \[ \]' "$SOURCE_FILE" || true)
+
+if [ -z "$UNCHECKED" ]; then
+    echo "No unchecked tasks in $SOURCE_DATE. You're all caught up!"
+    exit 0
+fi
+
+# --- Build rollover block ---
+
+ROLLOVER_BLOCK="### Rolled Over from $SOURCE_DATE"
+while IFS= read -r line; do
+    # Strip the leading whitespace/dash/checkbox, keep the task text
+    task_text=$(echo "$line" | sed -E 's/^\s*- \[ \] //')
+    ROLLOVER_BLOCK="$ROLLOVER_BLOCK
+- [ ] $task_text"
+done <<< "$UNCHECKED"
+
+# --- Insert into today's entry ---
+
+# Find "### Top 3 Priorities" and append after it
+PRIORITIES_LINE=$(grep -n '^### Top 3 Priorities$' "$TARGET_FILE" | head -n1 | cut -d':' -f1 || true)
+
+if [ -n "$PRIORITIES_LINE" ]; then
+    # Insert after the priority header
+    sed -i "" "${PRIORITIES_LINE}a\\
+$ROLLOVER_BLOCK
+" "$TARGET_FILE" 2>/dev/null || sed -i "${PRIORITIES_LINE}a\\ $ROLLOVER_BLOCK
+" "$TARGET_FILE"
+else
+    # Fallback: prepend to file after first heading
+    sed -i "" '2a\
+'"$ROLLOVER_BLOCK"'\
+' "$TARGET_FILE" 2>/dev/null || sed -i '2a\ '$ROLLOVER_BLOCK'\' "$TARGET_FILE"
+fi
+
+# --- Mark source tasks as rolled over ---
+
+sed -i '' 's/^\(\s*\)- \[ \]/\1- [>]/g' "$SOURCE_FILE" 2>/dev/null || sed -i 's/^\(\s*\)- \[ \]/\1- [>]/g' "$SOURCE_FILE"
+
+# --- Stage changes ---
+
+git add "$SOURCE_FILE" "$TARGET_FILE"
+
+echo "Rolled over $(echo "$UNCHECKED" | wc -l | tr -d ' ') task(s) from $SOURCE_DATE → $TARGET_DATE"
+echo "Run 'git commit' when ready (hooks will auto-message it)"

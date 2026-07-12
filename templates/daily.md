@@ -34,9 +34,19 @@ Focus:
 
 ## Log
 
+- HH:MM — Entry created
 - :: — 
 - :: — 
-- :: — 
+
+---
+
+## Habits
+
+- [ ] Exercise
+- [ ] Read
+- [ ] Meditate
+- [ ] Deep Work
+- [ ] Sleep 8h
 
 ---
 
@@ -57,4 +67,4 @@ Focus:
 
 ---
 
-#tags
+#journal #month
