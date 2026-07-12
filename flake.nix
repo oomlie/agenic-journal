@@ -18,6 +18,7 @@
           git
           gnugrep
           gnused
+          python3
         ];
 
         scriptNames = [
@@ -78,24 +79,25 @@
         };
 
         checks = {
+          # Fails the check on any real finding -- do not add `|| true` here.
           shellcheck = pkgs.runCommand "shellcheck" {} ''
-            ${pkgs.shellcheck}/bin/shellcheck ${./scripts}/lib/common.sh
-            for script in ${./scripts}/new-day ${./scripts}/log ${./scripts}/rollover \
-                          ${./scripts}/week-review ${./scripts}/remember \
-                          ${./scripts}/habits ${./scripts}/streak ${./scripts}/setup-hooks; do
-              if [ -f "$script" ]; then
-                ${pkgs.shellcheck}/bin/shellcheck "$script" || true
-              fi
-            done
+            ${pkgs.shellcheck}/bin/shellcheck --shell=bash \
+              ${./scripts}/lib/common.sh \
+              ${./scripts}/new-day ${./scripts}/log ${./scripts}/rollover \
+              ${./scripts}/week-review ${./scripts}/remember \
+              ${./scripts}/habits ${./scripts}/streak ${./scripts}/setup-hooks \
+              ${./.githooks}/prepare-commit-msg ${./.githooks}/post-commit
             touch $out
           '';
 
+          # Fails the check on any real test failure -- do not add `|| true` here.
           bats = pkgs.runCommand "bats-tests" {} ''
+            export HOME=$TMPDIR
             export PATH=${pkgs.lib.makeBinPath (runtimeDeps ++ [ pkgs.bats ])}:$PATH
             cp -r ${./.} source
             chmod -R +w source
             cd source
-            bats tests/ || true
+            bats tests/
             touch $out
           '';
         };
