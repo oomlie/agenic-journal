@@ -1,4 +1,4 @@
-# YYYY-MM-DD — Day Name
+# YYYY-MM-DD -- Day Name
 
 ## Morning
 
@@ -15,17 +15,17 @@
 
 ## Time Blocks
 
-### Block 1 — :00 - :00
+### Block 1 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
 
-### Block 2 — :00 - :00
+### Block 2 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
 
-### Block 3 — :00 - :00
+### Block 3 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
@@ -34,9 +34,9 @@ Focus:
 
 ## Log
 
-- HH:MM — Entry created
-- :: — 
-- :: — 
+- HH:MM -- Entry created
+- :: -- 
+- :: -- 
 
 ---
 

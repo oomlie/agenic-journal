@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # remember
-# Resurfaces a random journal entry from 30–90 days ago.
+# Resurfaces a random journal entry from 30-90 days ago.
 # Great for perspective, pattern recognition, and dopamine hits.
 #
 # Usage:
@@ -61,15 +61,18 @@ ENTRY_FILE="$REPO_ROOT/$y/$m-$(echo "$month_name" | tr '[:upper:]' '[:lower:]')/
 
 DAYS_AGO=$(( ($(date '+%s') - $(date -d "$TARGET_DATE" '+%s' 2>/dev/null || date -j -f '%Y-%m-%d' "$TARGET_DATE" '+%s' 2>/dev/null)) / 86400 ))
 
+# ASCII art header width
+HEADER="+---------------------------------------------------+"
+
 if [ -f "$ENTRY_FILE" ]; then
-    echo "═══════════════════════════════════════════════════"
-    echo "  🔄  Memory from $DAYS_AGO days ago"
-    echo "  $TARGET_DATE"
-    echo "═══════════════════════════════════════════════════"
+    echo "$HEADER"
+    printf "|         MEMORY FROM %3s DAYS AGO                |\n" "$DAYS_AGO"
+    printf "|              %s                  |\n" "$TARGET_DATE"
+    echo "$HEADER"
     echo ""
     cat "$ENTRY_FILE"
     echo ""
-    echo "═══════════════════════════════════════════════════"
+    echo "$HEADER"
 else
     echo "No journal entry found for $TARGET_DATE ($DAYS_AGO days ago)."
     echo ""
@@ -90,9 +93,15 @@ else
         fi
         nearby_file="$REPO_ROOT/$ny/$nm-$(echo "$nmonth" | tr '[:upper:]' '[:lower:]')/$nearby.md"
         if [ -f "$nearby_file" ]; then
-            echo "Found nearby entry: $nearby"
+            echo ""
+            echo "$HEADER"
+            printf "|   CLOSEST ENTRY FOUND: %s DAYS AGO              |\n" "$offset"
+            printf "|              %s                  |\n" "$nearby"
+            echo "$HEADER"
             echo ""
             cat "$nearby_file"
+            echo ""
+            echo "$HEADER"
             break
         fi
     done

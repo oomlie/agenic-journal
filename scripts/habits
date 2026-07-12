@@ -99,7 +99,7 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
             # Check if this habit is checked in the entry
             # Match: "- [x] Exercise" or "- [X] Read" etc (case insensitive)
             if echo "$habits_section" | grep -qiE "^- \[[xX]\] +$h" 2>/dev/null; then
-                day_checks_row="${day_checks_row}| ✅ "
+                day_checks_row="${day_checks_row}| [x]"
                 HABIT_COUNTS[$h]=$((${HABIT_COUNTS[$h]} + 1))
 
                 # Streak logic
@@ -108,7 +108,7 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
                     HABIT_STREAKS[$h]=${HABIT_CURRENT_STREAK[$h]}
                 fi
             else
-                day_checks_row="${day_checks_row}|    "
+                day_checks_row="${day_checks_row}| [ ]"
                 HABIT_CURRENT_STREAK[$h]=0
             fi
             idx=$((idx + 1))
@@ -116,7 +116,7 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
     else
         # No entry for this day
         for h in "${HABIT_NAMES[@]}"; do
-            day_checks_row="${day_checks_row}|    "
+            day_checks_row="${day_checks_row}| [ ]"
         done
         idx=0
         for h in "${HABIT_NAMES[@]}"; do
@@ -130,7 +130,7 @@ done
 
 # --- Build output ---
 
-OUTPUT="# Habit Tracker — $month_name $YEAR
+OUTPUT="# Habit Tracker -- $month_name $YEAR
 
 | Habit"
 for day in $(seq -w 1 $DAYS_IN_MONTH); do

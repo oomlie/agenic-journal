@@ -5,7 +5,7 @@
 # Marks rolled-over tasks in yesterday's file with [>].
 #
 # Usage:
-#   ./scripts/rollover              # Roll yesterday → today
+#   ./scripts/rollover              # Roll yesterday -> today
 #   ./scripts/rollover 2026-07-12   # Roll from a specific date
 #
 
@@ -101,9 +101,9 @@ $ROLLOVER_BLOCK
 " "$TARGET_FILE"
 else
     # Fallback: prepend to file after first heading
-    sed -i "" '2a\
-'"$ROLLOVER_BLOCK"'\
-' "$TARGET_FILE" 2>/dev/null || sed -i '2a\ '$ROLLOVER_BLOCK'\' "$TARGET_FILE"
+    sed -i "" '2a\\
+'"$ROLLOVER_BLOCK"'\\
+' "$TARGET_FILE" 2>/dev/null || sed -i '2a\\ '$ROLLOVER_BLOCK'\\' "$TARGET_FILE"
 fi
 
 # --- Mark source tasks as rolled over ---
@@ -114,5 +114,15 @@ sed -i '' 's/^\(\s*\)- \[ \]/\1- [>]/g' "$SOURCE_FILE" 2>/dev/null || sed -i 's/
 
 git add "$SOURCE_FILE" "$TARGET_FILE"
 
-echo "Rolled over $(echo "$UNCHECKED" | wc -l | tr -d ' ') task(s) from $SOURCE_DATE → $TARGET_DATE"
-echo "Run 'git commit' when ready (hooks will auto-message it)"
+NUM_TASKS=$(echo "$UNCHECKED" | wc -l | tr -d ' ')
+
+cat <<EOF
++---------------------------------------------------+
+|              TASKS ROLLED OVER                     |
++---------------------------------------------------+
+|  $NUM_TASKS task(s) from $SOURCE_DATE -> $TARGET_DATE  |
+|                                                   |
+|  Run 'git commit' when ready.                     |
+|  Hooks will auto-message it.                      |
++---------------------------------------------------+
+EOF

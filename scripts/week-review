@@ -67,7 +67,7 @@ if [ ${#ENTRY_FILES[@]} -eq 0 ]; then
     exit 0
 fi
 
-echo "Found ${#ENTRY_FILES[@]} entry(s) for week $WEEK_NUM ($WEEK_START → $WEEK_END)"
+echo "Found ${#ENTRY_FILES[@]} entry(s) for week $WEEK_NUM ($WEEK_START -> $WEEK_END)"
 
 # --- Parse data ---
 
@@ -147,11 +147,19 @@ fi
 if [ $ENERGY_COUNT -gt 0 ]; then
     ENERGY_AVG=$((ENERGY_SUM / ENERGY_COUNT))
 else
-    ENERGY_AVG="—"
+    ENERGY_AVG="-"
 fi
 
 # Top tags
 TOP_TAGS=$(echo "$ALL_TAGS" | tr ' ' '\n' | sort | uniq -c | sort -rn | head -n 5 | sed 's/^ *[0-9]* /- /' || true)
+
+# --- ASCII art header ---
+HEADER=$(cat <<'EOF'
+    _      _      _
+ __(.)< __(.)> __(.)=
+ \_)    \_)    \_)
+EOF
+)
 
 # --- Build review ---
 
@@ -159,7 +167,9 @@ mkdir -p "$REPO_ROOT/reviews"
 REVIEW_FILE="$REPO_ROOT/reviews/$YEAR-W$WEEK_NUM.md"
 
 cat > "$REVIEW_FILE" <<EOF
-# Week $WEEK_NUM Review — $WEEK_START to $WEEK_END
+# Week $WEEK_NUM Review -- $WEEK_START to $WEEK_END
+
+$HEADER
 
 ## Snapshot
 

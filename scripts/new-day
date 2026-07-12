@@ -61,7 +61,7 @@ fi
 
 # Build the entry from template
 cat > "$ENTRY_FILE" <<EOF
-# $ENTRY_DATE — $DAY_NAME
+# $ENTRY_DATE -- $DAY_NAME
 
 ## Morning
 
@@ -78,17 +78,17 @@ cat > "$ENTRY_FILE" <<EOF
 
 ## Time Blocks
 
-### Block 1 — :00 - :00
+### Block 1 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
 
-### Block 2 — :00 - :00
+### Block 2 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
 
-### Block 3 — :00 - :00
+### Block 3 -- :00 - :00
 Focus:  
 - [ ] Task
 - Notes:
@@ -97,9 +97,19 @@ Focus:
 
 ## Log
 
-- $(date '+%H:%M') — Entry created
-- :: — 
-- :: — 
+- $(date '+%H:%M') -- Entry created
+- :: -- 
+- :: -- 
+
+---
+
+## Habits
+
+- [ ] Exercise
+- [ ] Read
+- [ ] Meditate
+- [ ] Deep Work
+- [ ] Sleep 8h
 
 ---
 
@@ -123,4 +133,11 @@ Focus:
 #journal #$MONTH_NAME
 EOF
 
-echo "Created: $ENTRY_FILE"
+cat <<EOF
++---------------------------------------------------+
+|                  NEW DAY CREATED                   |
++---------------------------------------------------+
+|  $ENTRY_DATE -- $DAY_NAME
+|  $ENTRY_FILE
++---------------------------------------------------+
+EOF
