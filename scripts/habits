@@ -59,7 +59,6 @@ if [ ! -d "$MONTH_DIR" ]; then
 fi
 
 # --- Define habits to track ---
-# These map to the habit names in the daily template's ## Habits section
 
 HABIT_NAMES=("Exercise" "Read" "Meditate" "Deep Work" "Sleep 8h")
 HABIT_KEYS=("exercise" "read" "meditate" "deep work" "sleep")
@@ -78,11 +77,6 @@ for h in "${HABIT_NAMES[@]}"; do
     HABIT_CURRENT_STREAK[$h]=0
 done
 
-PREV_DAY_CHECKED=()
-for h in "${HABIT_NAMES[@]}"; do
-    PREV_DAY_CHECKED+=("false")
-done
-
 DAY_CHECKS=()
 
 for day in $(seq -w 1 $DAYS_IN_MONTH); do
@@ -90,19 +84,14 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
     day_checks_row=""
 
     if [ -f "$ENTRY_FILE" ]; then
-        # Extract the Habits section
         habits_section=$(sed -n '/^## Habits/,/^## /p' "$ENTRY_FILE" | head -n -1 || true)
 
         idx=0
         for h in "${HABIT_NAMES[@]}"; do
-            key="${HABIT_KEYS[$idx]}"
-            # Check if this habit is checked in the entry
-            # Match: "- [x] Exercise" or "- [X] Read" etc (case insensitive)
             if echo "$habits_section" | grep -qiE "^- \[[xX]\] +$h" 2>/dev/null; then
                 day_checks_row="${day_checks_row}| [x]"
                 HABIT_COUNTS[$h]=$((${HABIT_COUNTS[$h]} + 1))
 
-                # Streak logic
                 HABIT_CURRENT_STREAK[$h]=$((${HABIT_CURRENT_STREAK[$h]} + 1))
                 if [ ${HABIT_CURRENT_STREAK[$h]} -gt ${HABIT_STREAKS[$h]} ]; then
                     HABIT_STREAKS[$h]=${HABIT_CURRENT_STREAK[$h]}
@@ -114,83 +103,171 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
             idx=$((idx + 1))
         done
     else
-        # No entry for this day
         for h in "${HABIT_NAMES[@]}"; do
             day_checks_row="${day_checks_row}| [ ]"
         done
-        idx=0
         for h in "${HABIT_NAMES[@]}"; do
             HABIT_CURRENT_STREAK[$h]=0
-            idx=$((idx + 1))
         done
     fi
 
     DAY_CHECKS+=("$day_checks_row")
 done
 
-# --- Build output ---
+# --- Build the full monthly habit table (for standalone output) ---
 
-OUTPUT="# Habit Tracker -- $month_name $YEAR
+MONTHLY_TABLE="# Habit Tracker -- $month_name $YEAR
 
 | Habit"
 for day in $(seq -w 1 $DAYS_IN_MONTH); do
     day_num=$(echo "$day" | sed 's/^0//')
-    OUTPUT="$OUTPUT | $day_num"
+    MONTHLY_TABLE="$MONTHLY_TABLE | $day_num"
 done
-OUTPUT="$OUTPUT | Total | Streak |"
+MONTHLY_TABLE="$MONTHLY_TABLE | Total | Streak |"
 
-OUTPUT="$OUTPUT
+MONTHLY_TABLE="$MONTHLY_TABLE
 |-------"
 for day in $(seq 1 $DAYS_IN_MONTH); do
-    OUTPUT="$OUTPUT|------"
+    MONTHLY_TABLE="$MONTHLY_TABLE|------"
 done
-OUTPUT="$OUTPUT|-------|--------|"
+MONTHLY_TABLE="$MONTHLY_TABLE|-------|--------|"
 
 idx=0
 for h in "${HABIT_NAMES[@]}"; do
     row="| $h"
     for check in "${DAY_CHECKS[@]}"; do
-        # Extract the check for this habit index
         habit_check=$(echo "$check" | cut -d'|' -f$((idx + 2)))
         row="$row$habit_check|"
     done
     count=${HABIT_COUNTS[$h]}
     streak=${HABIT_STREAKS[$h]}
     row="$row $count | $streak |"
-    OUTPUT="$OUTPUT
+    MONTHLY_TABLE="$MONTHLY_TABLE
 $row"
     idx=$((idx + 1))
 done
 
-OUTPUT="$OUTPUT
+MONTHLY_TABLE="$MONTHLY_TABLE
 
-*Auto-generated from daily journal entries.*
-"
+*Auto-generated from daily journal entries.*"
+
+# --- Build the weekly review table (Mon-Sun, last 7 days) ---
+
+TODAY=$(date '+%Y-%m-%d')
+DOW=$(date -d "$TODAY" '+%u' 2>/dev/null || date -j -f '%Y-%m-%d' "$TODAY" '+%u' 2>/dev/null)
+DAYS_BACK=$((DOW - 1))
+WEEK_START=$(date -d "$TODAY - $DAYS_BACK days" '+%Y-%m-%d' 2>/dev/null || date -v-${DAYS_BACK}d '+%Y-%m-%d' 2>/dev/null)
+
+WEEKLY_HEADER="| Habit | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Streak |"
+WEEKLY_SEP="|-------|-----|-----|-----|-----|-----|-----|-----|--------|"
+
+WEEKLY_ROWS=""
+idx=0
+for h in "${HABIT_NAMES[@]}"; do
+    row="| $h"
+    week_counts=0
+    week_streak=0
+    current_run=0
+
+    for i in $(seq 0 6); do
+        CHECK_DATE=$(date -d "$WEEK_START + $i days" '+%Y-%m-%d' 2>/dev/null || date -v+${i}d -j -f '%Y-%m-%d' "$WEEK_START" '+%Y-%m-%d' 2>/dev/null)
+        cy=$(echo "$CHECK_DATE" | cut -d'-' -f1)
+        cm=$(echo "$CHECK_DATE" | cut -d'-' -f2)
+        cmonth=$(date -d "$CHECK_DATE" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$CHECK_DATE" '+%B' 2>/dev/null)
+        if [ -z "$cmonth" ]; then
+            case "$cm" in
+                01) cmonth="January" ;; 02) cmonth="February" ;; 03) cmonth="March" ;;
+                04) cmonth="April" ;; 05) cmonth="May" ;; 06) cmonth="June" ;;
+                07) cmonth="July" ;; 08) cmonth="August" ;; 09) cmonth="September" ;;
+                10) cmonth="October" ;; 11) cmonth="November" ;; 12) cmonth="December" ;;
+            esac
+        fi
+        CHECK_FILE="$REPO_ROOT/$cy/$cm-$(echo "$cmonth" | tr '[:upper:]' '[:lower:]')/$CHECK_DATE.md"
+
+        if [ -f "$CHECK_FILE" ]; then
+            habits_section=$(sed -n '/^## Habits/,/^## /p' "$CHECK_FILE" | head -n -1 || true)
+            if echo "$habits_section" | grep -qiE "^- \[[xX]\] +$h" 2>/dev/null; then
+                row="$row| [x]"
+                week_counts=$((week_counts + 1))
+                current_run=$((current_run + 1))
+                if [ $current_run -gt $week_streak ]; then
+                    week_streak=$current_run
+                fi
+            else
+                row="$row| [ ]"
+                current_run=0
+            fi
+        else
+            row="$row| [ ]"
+            current_run=0
+        fi
+    done
+
+    row="$row| $week_counts | $week_streak |"
+    WEEKLY_ROWS="$WEEKLY_ROWS
+$row"
+    idx=$((idx + 1))
+done
+
+WEEKLY_TABLE="$WEEKLY_HEADER
+$WEEKLY_SEP$WEEKLY_ROWS"
 
 # --- Output or fill review ---
 
 if [ "$FILL_REVIEW" = true ]; then
-    # Find the most recent weekly review
     REVIEW_DIR="$REPO_ROOT/reviews"
     if [ -d "$REVIEW_DIR" ]; then
         LATEST_REVIEW=$(ls -1t "$REVIEW_DIR"/*.md 2>/dev/null | head -n1 || true)
         if [ -n "$LATEST_REVIEW" ]; then
-            echo "Filling habit table in: $LATEST_REVIEW"
-            # TODO: Implement actual table replacement in review
-            # For now, output the habit data
-            echo "$OUTPUT"
-            git add "$LATEST_REVIEW" 2>/dev/null || true
+            # Replace the placeholder habit table in the review
+            # Find the table block and swap it
+            REVIEW_CONTENT=$(cat "$LATEST_REVIEW")
+
+            # Extract everything before the habit table header
+            BEFORE=$(echo "$REVIEW_CONTENT" | sed -n '1,/^| Habit | Mon |/p' | sed '$d')
+
+            # Extract everything after the table (starting from "*Run \`" or "## Looking")
+            AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^\*Run \`\./,$p' | sed '1d')
+            # Fallback: look for "## Looking Ahead"
+            if [ -z "$AFTER" ]; then
+                AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^## Looking Ahead/,$p')
+            fi
+
+            # Build new review content
+            NEW_CONTENT="$BEFORE
+## Habit Check-In
+
+*Auto-filled from daily entries.*
+
+$WEEKLY_TABLE
+
+$AFTER"
+
+            echo "$NEW_CONTENT" > "$LATEST_REVIEW"
+            git add "$LATEST_REVIEW"
+
+            cat <<EOF
++---------------------------------------------------+
+|              HABITS FILLED IN REVIEW               |
++---------------------------------------------------+
+|  Review: $(basename "$LATEST_REVIEW")
+|                                                   |
+|  Weekly habit data injected successfully.         |
++---------------------------------------------------+
+EOF
         else
             echo "No weekly review found. Outputting habit data:"
-            echo "$OUTPUT"
+            echo ""
+            echo "$WEEKLY_TABLE"
         fi
     else
         echo "No reviews directory. Outputting habit data:"
-        echo "$OUTPUT"
+        echo ""
+        echo "$WEEKLY_TABLE"
     fi
 else
     HABIT_FILE="$REPO_ROOT/$YEAR/$MONTH-$(echo "$month_name" | tr '[:upper:]' '[:lower:]')/habits.md"
-    echo "$OUTPUT" > "$HABIT_FILE"
+    echo "$MONTHLY_TABLE" > "$HABIT_FILE"
     git add "$HABIT_FILE" 2>/dev/null || true
     echo "Habit tracker saved: $HABIT_FILE"
 fi

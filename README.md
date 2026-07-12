@@ -28,6 +28,7 @@ agenic-journal/
 |   |-- week-review         # Generate weekly summary (run Sundays)
 |   |-- remember            # Resurface a random past entry
 |   |-- habits              # Tally habit streaks for the month
+|   |-- streak              # Show journaling streaks and stats
 |-- templates/
 |   |-- daily.md
 |-- reviews/                # Weekly review files
@@ -124,7 +125,7 @@ Generates a review file in `reviews/2026-W28.md` with:
 - Top tags
 - All wins and struggles aggregated
 - Daily logs compiled
-- ASCII art habit check-in table (fill after running `./scripts/habits`)
+- ASCII art habit check-in table
 
 ### 6. Memory Resurfacing
 
@@ -156,18 +157,54 @@ Daily entries include a Habits section:
 
 Check them off as you go. Then tally:
 ```bash
-./scripts/habits              # Current month's streaks
+./scripts/habits              # Current month's full habit table
 ./scripts/habits 2026 07      # Specific month
-./scripts/habits --fill       # Auto-fill latest weekly review table
+./scripts/habits --fill       # Inject into latest weekly review
 ```
 
-Habit table uses plain ASCII `[x]` / `[ ]` checkboxes:
+### 8. Streak Counter
+
+```bash
+./scripts/streak              # All-time stats
+./scripts/streak --month      # This month only
+./scripts/streak --year       # This year only
 ```
-| Habit     | 1 | 2 | 3 | ... | Total | Streak |
-|-----------|---|---|---|-----|-------|--------|
-| Exercise  |   |[x]|   | ... |   3   |   1    |
-| Read      |[x]|[x]|   | ... |   5   |   2    |
+
+Output:
 ```
+         )
+        (  )
+       .'  '.
+      / ~  ~ \
+     |        |
+      \      /
+       '....'
+      /      \
+     '________'
++---------------------------------------------------+
+|                 JOURNAL STREAKS                    |
++---------------------------------------------------+
+|  All Time                                         |
+|                                                   |
+|  Current Streak : 12 days
+|  Longest Streak : 23 days
+|  Total Entries  : 89
+|  First Entry    : 2026-04-15
+|                                                   |
+|  Milestones:                                      |
+|    7-day streak  [*]
+|    30-day streak [ ]
+|    100-day streak [ ]
+|                                                   |
+|  This Week      : 5 / 7 days
++---------------------------------------------------+
+```
+
+The fire ASCII grows as your streak does:
+- **0 days**: cold ashes
+- **1-6 days**: small flame
+- **7-29 days**: roaring fire
+- **30+ days**: inferno
 
 ## Journal as Calendar
 
@@ -204,10 +241,10 @@ rhythm tracking.
 ## Sunday Ritual
 
 ```bash
-./scripts/week-review && ./scripts/habits --fill
+./scripts/week-review && ./scripts/habits --fill && ./scripts/streak
 ```
 
-One command, full weekly retrospective + habit check-in, ready to commit.
+One command, full weekly retrospective + habit check-in + streak check.
 
 ## Tips
 
