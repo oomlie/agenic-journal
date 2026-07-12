@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
+
+REPO_ROOT=$(journal_require_repo_root)
+
+if [ -n "${1:-}" ]; then
+    SOURCE_DATE="$1"
+    journal_validate_date "$SOURCE_DATE"
+    TARGET_DATE=$(journal_add_days "$SOURCE_DATE" 1)
+else
+    TARGET_DATE=$(date '+%Y-%m-%d')
+    SOURCE_DATE=$(journal_add_days "$TARGET_DATE" -1)
+fi
+
+SOURCE_FILE=$(journal_entry_path "$REPO_ROOT" "$SOURCE_DATE")
+TARGET_FILE=$(journal_entry_path "$REPO_ROOT" "$TARGET_DATE")
+
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "No entry found for $SOURCE_DATE. Nothing to roll over."
+    exit 0
+fi
+
+if [ ! -f "$TARGET_FILE" ]; then
+    "$SCRIPT_DIR/new-day" "$TARGET_DATE" >/dev/null
+fi
+
+UNCHECKED=$(sed -n '/^### Top 3 Priorities/,/^---$/p' "$SOURCE_FILE" | grep -E '^[0-9]+\. \[ \]' || true)
+
+if [ -z "$UNCHECKED" ]; then
+    echo "No unchecked tasks in $SOURCE_DATE. You're all caught up!"
+    exit 0
+fi
+
+ROLLOVER_BLOCK="### Rolled Over from $SOURCE_DATE"
+while IFS= read -r line; do
+    task_text=$(echo "$line" | sed -E 's/^[0-9]+\. \[ \] //')
+    ROLLOVER_BLOCK="$ROLLOVER_BLOCK
+- [ ] $task_text"
+done <<< "$UNCHECKED"
+
+# Use journal_insert_after_line for both paths (bug b fix)
+PRIORITIES_LINE=$(grep -n '^### Top 3 Priorities$' "$TARGET_FILE" | head -n1 | cut -d':' -f1 || true)
+if [ -n "$PRIORITIES_LINE" ]; then
+    journal_insert_after_line "$TARGET_FILE" "$PRIORITIES_LINE" "$ROLLOVER_BLOCK"
+else
+    HEADING_LINE=$(grep -n '^# ' "$TARGET_FILE" | head -n1 | cut -d':' -f1 || true)
+    if [ -n "$HEADING_LINE" ]; then
+        journal_insert_after_line "$TARGET_FILE" "$HEADING_LINE" "$ROLLOVER_BLOCK"
+    else
+        echo -e "\n$ROLLOVER_BLOCK" >> "$TARGET_FILE"
+    fi
+fi
+
+sed -i 's/^\([0-9]*\. \)\[ \]/\1[>]/g' "$SOURCE_FILE"
+git add "$SOURCE_FILE" "$TARGET_FILE"
+
+NUM_TASKS=$(echo "$UNCHECKED" | wc -l | tr -d ' ')
+cat <<EOOUT
++---------------------------------------------------+
+|              TASKS ROLLED OVER                     |
++---------------------------------------------------+
+|  $NUM_TASKS task(s) from $SOURCE_DATE -> $TARGET_DATE  |
+|                                                   |
+|  Run 'git commit' when ready.                     |
+|  Hooks will auto-message it.                      |
++---------------------------------------------------+
+EOOUT

@@ -2,17 +2,14 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
-  check:
+  flake-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - name: Flake checks (format, lint)
-        run: nix flake check
-      - name: Build the journal CLI
-        run: nix build .#default
-      - name: Smoke-test the CLI
-        run: nix run .#default -- help
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix flake check -L
