@@ -1,17 +1,9 @@
 #!/bin/bash
-#
-# post-commit
-# Logs a lightweight timestamp entry after each journal commit.
-# Useful for tracking your journaling rhythm over time.
-#
-
 JOURNAL_LOG=".journal-log"
 LAST_COMMIT_MSG=$(git log -1 --pretty=%B | head -n1)
 LAST_COMMIT_HASH=$(git rev-parse --short HEAD)
 LAST_COMMIT_DATE=$(git log -1 --format=%cd --date=iso)
-
-# Only log if it's a journal entry commit
 if echo "$LAST_COMMIT_MSG" | grep -qE 'journal update'; then
-    echo "[$LAST_COMMIT_DATE] $LAST_COMMIT_HASH — $LAST_COMMIT_MSG" >> "$JOURNAL_LOG"
+    echo "[$LAST_COMMIT_DATE] $LAST_COMMIT_HASH -- $LAST_COMMIT_MSG" >> "$JOURNAL_LOG"
     git add "$JOURNAL_LOG" 2>/dev/null || true
 fi

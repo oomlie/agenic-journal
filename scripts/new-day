@@ -1,65 +1,22 @@
 #!/bin/bash
-#
-# new-day
-# Scaffolds a new daily journal entry from the template.
-# Usage: ./scripts/new-day [YYYY-MM-DD]
-#        ./scripts/new-day         (uses today's date)
-#
-
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-
-if [ -z "$REPO_ROOT" ]; then
-    echo "Error: Not inside a Git repository."
-    exit 1
-fi
-
-# Determine date
-if [ -n "$1" ]; then
-    ENTRY_DATE="$1"
-    # Validate format
-    if ! echo "$ENTRY_DATE" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
-        echo "Error: Date must be YYYY-MM-DD format."
-        exit 1
-    fi
-else
-    ENTRY_DATE=$(date '+%Y-%m-%d')
-fi
-
+if [ -z "$REPO_ROOT" ]; then echo "Error: Not inside a Git repository."; exit 1; fi
+if [ -n "$1" ]; then ENTRY_DATE="$1"
+else ENTRY_DATE=$(date '+%Y-%m-%d'); fi
 YEAR=$(echo "$ENTRY_DATE" | cut -d'-' -f1)
 MONTH_NUM=$(echo "$ENTRY_DATE" | cut -d'-' -f2)
-MONTH_NAME=$(date -d "$ENTRY_DATE" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$ENTRY_DATE" '+%B' 2>/dev/null)
-
-# Fallback month names for macOS/BSD date
-if [ -z "$MONTH_NAME" ]; then
-    case "$MONTH_NUM" in
-        01) MONTH_NAME="January" ;; 02) MONTH_NAME="February" ;; 03) MONTH_NAME="March" ;;
-        04) MONTH_NAME="April" ;; 05) MONTH_NAME="May" ;; 06) MONTH_NAME="June" ;;
-        07) MONTH_NAME="July" ;; 08) MONTH_NAME="August" ;; 09) MONTH_NAME="September" ;;
-        10) MONTH_NAME="October" ;; 11) MONTH_NAME="November" ;; 12) MONTH_NAME="December" ;;
-    esac
-fi
-
+MONTH_NAME=$(date -d "$ENTRY_DATE" '+%B' 2>/dev/null)
+if [ -z "$MONTH_NAME" ]; then case "$MONTH_NUM" in
+    01) MONTH_NAME="January" ;; 02) MONTH_NAME="February" ;; 03) MONTH_NAME="March" ;;
+    04) MONTH_NAME="April" ;; 05) MONTH_NAME="May" ;; 06) MONTH_NAME="June" ;;
+    07) MONTH_NAME="July" ;; 08) MONTH_NAME="August" ;; 09) MONTH_NAME="September" ;;
+    10) MONTH_NAME="October" ;; 11) MONTH_NAME="November" ;; 12) MONTH_NAME="December" ;;
+esac; fi
 MONTH_DIR="$REPO_ROOT/$YEAR/$MONTH_NUM-$(echo "$MONTH_NAME" | tr '[:upper:]' '[:lower:]')"
 ENTRY_FILE="$MONTH_DIR/$ENTRY_DATE.md"
-
-# Check if entry already exists
-if [ -f "$ENTRY_FILE" ]; then
-    echo "Entry already exists: $ENTRY_FILE"
-    echo "Opening..."
-    exit 0
-fi
-
-# Create month directory if needed
+if [ -f "$ENTRY_FILE" ]; then echo "Entry already exists: $ENTRY_FILE"; exit 0; fi
 mkdir -p "$MONTH_DIR"
-
-# Derive day name
-DAY_NAME=$(date -d "$ENTRY_DATE" '+%A' 2>/dev/null || date -j -f '%Y-%m-%d' "$ENTRY_DATE" '+%A' 2>/dev/null)
-if [ -z "$DAY_NAME" ]; then
-    # Python fallback for BSD systems
-    DAY_NAME=$(python3 -c "import datetime; print(datetime.datetime.strptime('$ENTRY_DATE', '%Y-%m-%d').strftime('%A'))" 2>/dev/null || echo "Day")
-fi
-
-# Build the entry from template
+DAY_NAME=$(date -d "$ENTRY_DATE" '+%A' 2>/dev/null || echo "Day")
 cat > "$ENTRY_FILE" <<EOF
 # $ENTRY_DATE -- $DAY_NAME
 
@@ -132,12 +89,11 @@ Focus:
 
 #journal #$MONTH_NAME
 EOF
-
-cat <<EOF
+cat <<EOOUT
 +---------------------------------------------------+
 |                  NEW DAY CREATED                   |
 +---------------------------------------------------+
 |  $ENTRY_DATE -- $DAY_NAME
 |  $ENTRY_FILE
 +---------------------------------------------------+
-EOF
+EOOUT

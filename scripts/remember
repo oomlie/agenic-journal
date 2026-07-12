@@ -1,107 +1,52 @@
 #!/bin/bash
-#
-# remember
-# Resurfaces a random journal entry from 30-90 days ago.
-# Great for perspective, pattern recognition, and dopamine hits.
-#
-# Usage:
-#   ./scripts/remember              # Random entry from 30-90 days ago
-#   ./scripts/remember 60 120       # Custom range (min max days back)
-#   ./scripts/remember --today      # Show entry from exactly 1 year ago
-#
-
 set -euo pipefail
-
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-
-if [ -z "$REPO_ROOT" ]; then
-    echo "Error: Not inside a Git repository."
-    exit 1
-fi
-
-# --- Parse args ---
-
-MIN_DAYS=30
-MAX_DAYS=90
-
+if [ -z "$REPO_ROOT" ]; then echo "Error: Not inside a Git repository."; exit 1; fi
+MIN_DAYS=30; MAX_DAYS=90
 if [ "${1:-}" = "--today" ] || [ "${1:-}" = "-t" ]; then
-    # This day last year
-    TARGET_DATE=$(date -d "$(date '+%Y-%m-%d') - 1 year" '+%Y-%m-%d' 2>/dev/null || date -v-1y '+%Y-%m-%d' 2>/dev/null)
-    echo "This day last year: $TARGET_DATE"
-    echo ""
+    TARGET_DATE=$(date -d "$(date '+%Y-%m-%d') - 1 year" '+%Y-%m-%d' 2>/dev/null)
+    echo "This day last year: $TARGET_DATE"; echo ""
 else
-    if [ $# -ge 2 ]; then
-        MIN_DAYS=$1
-        MAX_DAYS=$2
-    fi
-
-    # Generate random day in range
+    if [ $# -ge 2 ]; then MIN_DAYS=$1; MAX_DAYS=$2; fi
     SPAN=$((MAX_DAYS - MIN_DAYS))
     RANDOM_DAYS=$((MIN_DAYS + RANDOM % (SPAN + 1)))
-    TARGET_DATE=$(date -d "$(date '+%Y-%m-%d') - $RANDOM_DAYS days" '+%Y-%m-%d' 2>/dev/null || date -v-${RANDOM_DAYS}d '+%Y-%m-%d' 2>/dev/null)
+    TARGET_DATE=$(date -d "$(date '+%Y-%m-%d') - $RANDOM_DAYS days" '+%Y-%m-%d' 2>/dev/null)
 fi
-
-# --- Resolve file path ---
-
-y=$(echo "$TARGET_DATE" | cut -d'-' -f1)
-m=$(echo "$TARGET_DATE" | cut -d'-' -f2)
-month_name=$(date -d "$TARGET_DATE" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$TARGET_DATE" '+%B' 2>/dev/null)
-if [ -z "$month_name" ]; then
-    case "$m" in
-        01) month_name="January" ;; 02) month_name="February" ;; 03) month_name="March" ;;
-        04) month_name="April" ;; 05) month_name="May" ;; 06) month_name="June" ;;
-        07) month_name="July" ;; 08) month_name="August" ;; 09) month_name="September" ;;
-        10) month_name="October" ;; 11) month_name="November" ;; 12) month_name="December" ;;
-    esac
-fi
-
+y=$(echo "$TARGET_DATE" | cut -d'-' -f1); m=$(echo "$TARGET_DATE" | cut -d'-' -f2)
+month_name=$(date -d "$TARGET_DATE" '+%B' 2>/dev/null)
+if [ -z "$month_name" ]; then case "$m" in
+    01) month_name="January" ;; 02) month_name="February" ;; 03) month_name="March" ;;
+    04) month_name="April" ;; 05) month_name="May" ;; 06) month_name="June" ;;
+    07) month_name="July" ;; 08) month_name="August" ;; 09) month_name="September" ;;
+    10) month_name="October" ;; 11) month_name="November" ;; 12) month_name="December" ;;
+esac; fi
 ENTRY_FILE="$REPO_ROOT/$y/$m-$(echo "$month_name" | tr '[:upper:]' '[:lower:]')/$TARGET_DATE.md"
-
-# --- Display ---
-
-DAYS_AGO=$(( ($(date '+%s') - $(date -d "$TARGET_DATE" '+%s' 2>/dev/null || date -j -f '%Y-%m-%d' "$TARGET_DATE" '+%s' 2>/dev/null)) / 86400 ))
-
-# ASCII art header width
+DAYS_AGO=$(( ($(date '+%s') - $(date -d "$TARGET_DATE" '+%s' 2>/dev/null)) / 86400 ))
 HEADER="+---------------------------------------------------+"
-
 if [ -f "$ENTRY_FILE" ]; then
     echo "$HEADER"
     printf "|         MEMORY FROM %3s DAYS AGO                |\n" "$DAYS_AGO"
     printf "|              %s                  |\n" "$TARGET_DATE"
-    echo "$HEADER"
-    echo ""
-    cat "$ENTRY_FILE"
-    echo ""
-    echo "$HEADER"
+    echo "$HEADER"; echo ""; cat "$ENTRY_FILE"; echo ""; echo "$HEADER"
 else
     echo "No journal entry found for $TARGET_DATE ($DAYS_AGO days ago)."
-    echo ""
-    # Try to find the closest entry
-    echo "Searching for nearby entries..."
+    echo ""; echo "Searching for nearby entries..."
     for offset in $(seq 1 7); do
-        nearby=$(date -d "$TARGET_DATE - $offset days" '+%Y-%m-%d' 2>/dev/null || date -v-${offset}d -j -f '%Y-%m-%d' "$TARGET_DATE" '+%Y-%m-%d' 2>/dev/null)
-        ny=$(echo "$nearby" | cut -d'-' -f1)
-        nm=$(echo "$nearby" | cut -d'-' -f2)
-        nmonth=$(date -d "$nearby" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$nearby" '+%B' 2>/dev/null)
-        if [ -z "$nmonth" ]; then
-            case "$nm" in
-                01) nmonth="January" ;; 02) nmonth="February" ;; 03) nmonth="March" ;;
-                04) nmonth="April" ;; 05) nmonth="May" ;; 06) nmonth="June" ;;
-                07) nmonth="July" ;; 08) nmonth="August" ;; 09) nmonth="September" ;;
-                10) nmonth="October" ;; 11) nmonth="November" ;; 12) nmonth="December" ;;
-            esac
-        fi
+        nearby=$(date -d "$TARGET_DATE - $offset days" '+%Y-%m-%d' 2>/dev/null)
+        ny=$(echo "$nearby" | cut -d'-' -f1); nm=$(echo "$nearby" | cut -d'-' -f2)
+        nmonth=$(date -d "$nearby" '+%B' 2>/dev/null)
+        if [ -z "$nmonth" ]; then case "$nm" in
+            01) nmonth="January" ;; 02) nmonth="February" ;; 03) nmonth="March" ;;
+            04) nmonth="April" ;; 05) nmonth="May" ;; 06) nmonth="June" ;;
+            07) nmonth="July" ;; 08) nmonth="August" ;; 09) nmonth="September" ;;
+            10) nmonth="October" ;; 11) nmonth="November" ;; 12) nmonth="December" ;;
+        esac; fi
         nearby_file="$REPO_ROOT/$ny/$nm-$(echo "$nmonth" | tr '[:upper:]' '[:lower:]')/$nearby.md"
         if [ -f "$nearby_file" ]; then
-            echo ""
-            echo "$HEADER"
+            echo ""; echo "$HEADER"
             printf "|   CLOSEST ENTRY FOUND: %s DAYS AGO              |\n" "$offset"
             printf "|              %s                  |\n" "$nearby"
-            echo "$HEADER"
-            echo ""
-            cat "$nearby_file"
-            echo ""
-            echo "$HEADER"
+            echo "$HEADER"; echo ""; cat "$nearby_file"; echo ""; echo "$HEADER"
             break
         fi
     done

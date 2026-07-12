@@ -1,57 +1,24 @@
 #!/bin/bash
-#
-# prepare-commit-msg
-# Auto-generates commit messages for journal entries with timestamps.
-# Falls back to default behavior for non-journal files.
-#
-
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
-
-# Only auto-message if no source specified (normal commit, not merge/cherry-pick/etc)
-if [ -n "$COMMIT_SOURCE" ]; then
-    exit 0
-fi
-
-# Get list of staged files
+if [ -n "$COMMIT_SOURCE" ]; then exit 0; fi
 STAGED_FILES=$(git diff --cached --name-only)
-
-# Check if any journal entry files are being committed
 JOURNAL_FILES=$(echo "$STAGED_FILES" | grep -E '^[0-9]{4}/[0-9]{2}-[a-z]+/[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' || true)
-
-if [ -z "$JOURNAL_FILES" ]; then
-    exit 0
-fi
-
-# Get current timestamp
+if [ -z "$JOURNAL_FILES" ]; then exit 0; fi
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M')
 TIME_OF_DAY=$(date '+%H')
-
-# Determine time-of-day label
-if [ "$TIME_OF_DAY" -lt 12 ]; then
-    PERIOD="morning"
-elif [ "$TIME_OF_DAY" -lt 17 ]; then
-    PERIOD="afternoon"
-else
-    PERIOD="evening"
-fi
-
-# Extract the date from the first journal file
+if [ "$TIME_OF_DAY" -lt 12 ]; then PERIOD="morning"
+elif [ "$TIME_OF_DAY" -lt 17 ]; then PERIOD="afternoon"
+else PERIOD="evening"; fi
 ENTRY_DATE=$(echo "$JOURNAL_FILES" | head -n1 | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-
-# Count how many journal files are being committed
 FILE_COUNT=$(echo "$JOURNAL_FILES" | wc -l | tr -d ' ')
-
 if [ "$FILE_COUNT" -eq 1 ]; then
-    echo "$ENTRY_DATE — journal update ($PERIOD, $TIMESTAMP)" > "$COMMIT_MSG_FILE"
+    echo "$ENTRY_DATE -- journal update ($PERIOD, $TIMESTAMP)" > "$COMMIT_MSG_FILE"
 else
-    echo "$ENTRY_DATE +$FILE_COUNT entries — journal update ($PERIOD, $TIMESTAMP)" > "$COMMIT_MSG_FILE"
+    echo "$ENTRY_DATE +$FILE_COUNT entries -- journal update ($PERIOD, $TIMESTAMP)" > "$COMMIT_MSG_FILE"
 fi
-
-# Check for TODO progress
 COMPLETED=$(git diff --cached | grep -cE '^\+.*\[x\]' || true)
 ADDED=$(git diff --cached | grep -cE '^\+.*\[ \]' || true)
-
 if [ "$COMPLETED" -gt 0 ] || [ "$ADDED" -gt 0 ]; then
     echo "" >> "$COMMIT_MSG_FILE"
     echo "Tasks: $COMPLETED completed, $ADDED added" >> "$COMMIT_MSG_FILE"

@@ -1,43 +1,15 @@
 #!/bin/bash
-#
-# streak
-# Shows journaling streaks and lifetime stats.
-# Good dopamine hit + motivation to keep the chain going.
-#
-# Usage:
-#   ./scripts/streak              # All-time stats
-#   ./scripts/streak --month      # Current month only
-#   ./scripts/streak --year       # Current year only
-#
-
 set -euo pipefail
-
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-
-if [ -z "$REPO_ROOT" ]; then
-    echo "Error: Not inside a Git repository."
-    exit 1
-fi
-
-# --- Parse args ---
+if [ -z "$REPO_ROOT" ]; then echo "Error: Not inside a Git repository."; exit 1; fi
 
 MODE="all"
-if [ "${1:-}" = "--month" ] || [ "${1:-}" = "-m" ]; then
-    MODE="month"
-elif [ "${1:-}" = "--year" ] || [ "${1:-}" = "-y" ]; then
-    MODE="year"
-fi
-
-# --- Collect all entry dates ---
+if [ "${1:-}" = "--month" ] || [ "${1:-}" = "-m" ]; then MODE="month"
+elif [ "${1:-}" = "--year" ] || [ "${1:-}" = "-y" ]; then MODE="year"; fi
 
 ALL_DATES=$(find "$REPO_ROOT" -type f -name '*.md' | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}\.md$' | sed 's/\.md$//' | sort)
+if [ -z "$ALL_DATES" ]; then echo "No journal entries found yet. Start journaling!"; exit 0; fi
 
-if [ -z "$ALL_DATES" ]; then
-    echo "No journal entries found yet. Start journaling!"
-    exit 0
-fi
-
-# Filter by mode
 if [ "$MODE" = "month" ]; then
     CURRENT_MONTH=$(date '+%Y-%m')
     DATES=$(echo "$ALL_DATES" | grep "^$CURRENT_MONTH" || true)
@@ -51,104 +23,59 @@ else
     LABEL="All Time"
 fi
 
-if [ -z "$DATES" ]; then
-    echo "No entries for $LABEL."
-    exit 0
-fi
-
-# --- Calculate stats ---
+if [ -z "$DATES" ]; then echo "No entries for $LABEL."; exit 0; fi
 
 TOTAL_ENTRIES=$(echo "$DATES" | wc -l | tr -d ' ')
 FIRST_DATE=$(echo "$DATES" | head -n1)
-LAST_DATE=$(echo "$DATES" | tail -n1)
-DAYS_SINCE_FIRST=$(( ($(date '+%s') - $(date -d "$FIRST_DATE" '+%s' 2>/dev/null || date -j -f '%Y-%m-%d' "$FIRST_DATE" '+%s' 2>/dev/null)) / 86400 ))
-
-# --- Calculate current streak ---
 
 TODAY=$(date '+%Y-%m-%d')
-YESTERDAY=$(date -d "$TODAY - 1 day" '+%Y-%m-%d' 2>/dev/null || date -v-1d '+%Y-%m-%d' 2>/dev/null)
+YESTERDAY=$(date -d "$TODAY - 1 day" '+%Y-%m-%d' 2>/dev/null)
 
-CURRENT_STREAK=0
-CHECK_DATE="$TODAY"
+CURRENT_STREAK=0; CHECK_DATE="$TODAY"
+if echo "$DATES" | grep -qx "$TODAY"; then CURRENT_STREAK=1
+elif echo "$DATES" | grep -qx "$YESTERDAY"; then CURRENT_STREAK=1; CHECK_DATE="$YESTERDAY"
+else CURRENT_STREAK=0; fi
 
-# Check if we journaled today; if not, check yesterday
-if echo "$DATES" | grep -qx "$TODAY"; then
-    CURRENT_STREAK=1
-elif echo "$DATES" | grep -qx "$YESTERDAY"; then
-    CURRENT_STREAK=1
-    CHECK_DATE="$YESTERDAY"
-else
-    CURRENT_STREAK=0
-fi
-
-# Walk backwards from the last journaled day
 if [ $CURRENT_STREAK -gt 0 ]; then
     while true; do
-        PREV=$(date -d "$CHECK_DATE - 1 day" '+%Y-%m-%d' 2>/dev/null || date -v-1d -j -f '%Y-%m-%d' "$CHECK_DATE" '+%Y-%m-%d' 2>/dev/null)
+        PREV=$(date -d "$CHECK_DATE - 1 day" '+%Y-%m-%d' 2>/dev/null)
         if echo "$DATES" | grep -qx "$PREV"; then
-            CURRENT_STREAK=$((CURRENT_STREAK + 1))
-            CHECK_DATE="$PREV"
-        else
-            break
-        fi
+            CURRENT_STREAK=$((CURRENT_STREAK + 1)); CHECK_DATE="$PREV"
+        else break; fi
     done
 fi
 
-# --- Calculate longest streak ever ---
-
-LONGEST_STREAK=0
-CURRENT_RUN=0
-PREV_EPOCH=0
-
+LONGEST_STREAK=0; CURRENT_RUN=0; PREV_EPOCH=0
 for d in $(echo "$DATES" | sort); do
-    THIS_EPOCH=$(date -d "$d" '+%s' 2>/dev/null || date -j -f '%Y-%m-%d' "$d" '+%s' 2>/dev/null)
-    if [ $PREV_EPOCH -eq 0 ]; then
-        CURRENT_RUN=1
+    THIS_EPOCH=$(date -d "$d" '+%s' 2>/dev/null)
+    if [ $PREV_EPOCH -eq 0 ]; then CURRENT_RUN=1
     else
         DIFF=$(( (THIS_EPOCH - PREV_EPOCH) / 86400 ))
-        if [ $DIFF -eq 1 ]; then
-            CURRENT_RUN=$((CURRENT_RUN + 1))
+        if [ $DIFF -eq 1 ]; then CURRENT_RUN=$((CURRENT_RUN + 1))
         else
-            if [ $CURRENT_RUN -gt $LONGEST_STREAK ]; then
-                LONGEST_STREAK=$CURRENT_RUN
-            fi
+            [ $CURRENT_RUN -gt $LONGEST_STREAK ] && LONGEST_STREAK=$CURRENT_RUN
             CURRENT_RUN=1
         fi
     fi
     PREV_EPOCH=$THIS_EPOCH
 done
-
-# Check final run
-if [ $CURRENT_RUN -gt $LONGEST_STREAK ]; then
-    LONGEST_STREAK=$CURRENT_RUN
-fi
-
-# --- Calculate this week ---
+[ $CURRENT_RUN -gt $LONGEST_STREAK ] && LONGEST_STREAK=$CURRENT_RUN
 
 DOW=$(date '+%u')
 DAYS_BACK=$((DOW - 1))
-WEEK_START=$(date -d "$(date '+%Y-%m-%d') - $DAYS_BACK days" '+%Y-%m-%d' 2>/dev/null || date -v-${DAYS_BACK}d '+%Y-%m-%d' 2>/dev/null)
+WEEK_START=$(date -d "$(date '+%Y-%m-%d') - $DAYS_BACK days" '+%Y-%m-%d' 2>/dev/null)
 THIS_WEEK_COUNT=0
 for i in $(seq 0 6); do
-    CHECK=$(date -d "$WEEK_START + $i days" '+%Y-%m-%d' 2>/dev/null || date -v+${i}d -j -f '%Y-%m-%d' "$WEEK_START" '+%Y-%m-%d' 2>/dev/null)
-    if echo "$DATES" | grep -qx "$CHECK"; then
-        THIS_WEEK_COUNT=$((THIS_WEEK_COUNT + 1))
-    fi
+    CHECK=$(date -d "$WEEK_START + $i days" '+%Y-%m-%d' 2>/dev/null)
+    echo "$DATES" | grep -qx "$CHECK" && THIS_WEEK_COUNT=$((THIS_WEEK_COUNT + 1))
 done
 
-# --- ASCII art fire streak ---
+FIRE_7=""; FIRE_30=""; FIRE_100=""
+[ $CURRENT_STREAK -ge 7 ] && FIRE_7="[*]"
+[ $CURRENT_STREAK -ge 30 ] && FIRE_30="[*]"
+[ $CURRENT_STREAK -ge 100 ] && FIRE_100="[*]"
 
-FIRE_7=""
-FIRE_30=""
-FIRE_100=""
-
-if [ $CURRENT_STREAK -ge 7 ]; then  FIRE_7="[*]"; fi
-if [ $CURRENT_STREAK -ge 30 ]; then FIRE_30="[*]"; fi
-if [ $CURRENT_STREAK -ge 100 ]; then FIRE_100="[*]"; fi
-
-# Build fire ASCII based on streak intensity
-if [ $CURRENT_STREAK -eq 0 ]; then
-    FIRE_ART=$(cat <<'EOF'
+if [ $CURRENT_STREAK -eq 0 ]; then FIRE_ART=$(cat <<'EOF'
         (    )
         )  (
       .'    '.
@@ -158,8 +85,7 @@ if [ $CURRENT_STREAK -eq 0 ]; then
       '.____.'
 EOF
 )
-elif [ $CURRENT_STREAK -lt 7 ]; then
-    FIRE_ART=$(cat <<'EOF'
+elif [ $CURRENT_STREAK -lt 7 ]; then FIRE_ART=$(cat <<'EOF'
          )
         (  )
        .'  '.
@@ -171,8 +97,7 @@ elif [ $CURRENT_STREAK -lt 7 ]; then
      '________'
 EOF
 )
-elif [ $CURRENT_STREAK -lt 30 ]; then
-    FIRE_ART=$(cat <<'EOF'
+elif [ $CURRENT_STREAK -lt 30 ]; then FIRE_ART=$(cat <<'EOF'
        .-(   )-.
       /         \
      |   ~   ~   |
@@ -185,8 +110,7 @@ elif [ $CURRENT_STREAK -lt 30 ]; then
      '___________'
 EOF
 )
-else
-    FIRE_ART=$(cat <<'EOF'
+else FIRE_ART=$(cat <<'EOF'
          (    )
          )  ( (
        .'   '. '.
@@ -201,13 +125,9 @@ else
    '  '________'  '
    '______________'
 EOF
-)
-fi
+); fi
 
-# --- Output ---
-
-if [ "$MODE" = "all" ]; then
-    cat <<EOF
+if [ "$MODE" = "all" ]; then cat <<EOF
 $FIRE_ART
 +---------------------------------------------------+
 |                 JOURNAL STREAKS                    |
@@ -227,8 +147,7 @@ $FIRE_ART
 |  This Week      : $THIS_WEEK_COUNT / 7 days
 +---------------------------------------------------+
 EOF
-else
-    cat <<EOF
+else cat <<EOF
 $FIRE_ART
 +---------------------------------------------------+
 |                 JOURNAL STREAKS                    |

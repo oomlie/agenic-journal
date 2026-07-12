@@ -1,97 +1,46 @@
 #!/bin/bash
-#
-# habits
-# Tallies habit tracker checkboxes from daily entries for a given month.
-# Outputs a markdown table with streaks and completion rates.
-#
-# Usage:
-#   ./scripts/habits              # Current month
-#   ./scripts/habits 2026 07      # Specific year and month
-#   ./scripts/habits --fill       # Auto-fill the weekly review habit table
-#
-
 set -euo pipefail
-
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-
-if [ -z "$REPO_ROOT" ]; then
-    echo "Error: Not inside a Git repository."
-    exit 1
-fi
+if [ -z "$REPO_ROOT" ]; then echo "Error: Not inside a Git repository."; exit 1; fi
 
 FILL_REVIEW=false
-
-# --- Parse args ---
-
 if [ "${1:-}" = "--fill" ] || [ "${1:-}" = "-f" ]; then
-    FILL_REVIEW=true
-    # Default to current month for fill mode
-    YEAR=$(date '+%Y')
-    MONTH=$(date '+%m')
-elif [ $# -ge 2 ]; then
-    YEAR=$1
-    MONTH=$2
-else
-    YEAR=$(date '+%Y')
-    MONTH=$(date '+%m')
-fi
+    FILL_REVIEW=true; YEAR=$(date '+%Y'); MONTH=$(date '+%m')
+elif [ $# -ge 2 ]; then YEAR=$1; MONTH=$2
+else YEAR=$(date '+%Y'); MONTH=$(date '+%m'); fi
 
-# Validate month
-if ! echo "$MONTH" | grep -qE '^[0-9]{2}$'; then
-    MONTH=$(printf "%02d" "$MONTH")
-fi
-
-month_name=$(date -d "$YEAR-$MONTH-01" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$YEAR-$MONTH-01" '+%B' 2>/dev/null)
-if [ -z "$month_name" ]; then
-    case "$MONTH" in
-        01) month_name="January" ;; 02) month_name="February" ;; 03) month_name="March" ;;
-        04) month_name="April" ;; 05) month_name="May" ;; 06) month_name="June" ;;
-        07) month_name="July" ;; 08) month_name="August" ;; 09) month_name="September" ;;
-        10) month_name="October" ;; 11) month_name="November" ;; 12) month_name="December" ;;
-    esac
-fi
+if ! echo "$MONTH" | grep -qE '^[0-9]{2}$'; then MONTH=$(printf "%02d" "$MONTH"); fi
+month_name=$(date -d "$YEAR-$MONTH-01" '+%B' 2>/dev/null)
+if [ -z "$month_name" ]; then case "$MONTH" in
+    01) month_name="January" ;; 02) month_name="February" ;; 03) month_name="March" ;;
+    04) month_name="April" ;; 05) month_name="May" ;; 06) month_name="June" ;;
+    07) month_name="July" ;; 08) month_name="August" ;; 09) month_name="September" ;;
+    10) month_name="October" ;; 11) month_name="November" ;; 12) month_name="December" ;;
+esac; fi
 
 MONTH_DIR="$REPO_ROOT/$YEAR/$MONTH-$(echo "$month_name" | tr '[:upper:]' '[:lower:]')"
-
-if [ ! -d "$MONTH_DIR" ]; then
-    echo "No journal entries found for $month_name $YEAR."
-    exit 0
-fi
-
-# --- Define habits to track ---
+if [ ! -d "$MONTH_DIR" ]; then echo "No journal entries found for $month_name $YEAR."; exit 0; fi
 
 HABIT_NAMES=("Exercise" "Read" "Meditate" "Deep Work" "Sleep 8h")
-HABIT_KEYS=("exercise" "read" "meditate" "deep work" "sleep")
-
-# --- Scan entries ---
-
-DAYS_IN_MONTH=$(date -d "$YEAR-$MONTH-01 + 1 month - 1 day" '+%d' 2>/dev/null || date -v+1m -v-1d -j -f '%Y-%m-%d' "$YEAR-$MONTH-01" '+%d' 2>/dev/null)
+DAYS_IN_MONTH=$(date -d "$YEAR-$MONTH-01 + 1 month - 1 day" '+%d' 2>/dev/null)
 
 declare -A HABIT_COUNTS
 declare -A HABIT_STREAKS
 declare -A HABIT_CURRENT_STREAK
-
 for h in "${HABIT_NAMES[@]}"; do
-    HABIT_COUNTS[$h]=0
-    HABIT_STREAKS[$h]=0
-    HABIT_CURRENT_STREAK[$h]=0
+    HABIT_COUNTS[$h]=0; HABIT_STREAKS[$h]=0; HABIT_CURRENT_STREAK[$h]=0
 done
-
 DAY_CHECKS=()
 
 for day in $(seq -w 1 $DAYS_IN_MONTH); do
     ENTRY_FILE="$MONTH_DIR/$YEAR-$MONTH-$day.md"
     day_checks_row=""
-
     if [ -f "$ENTRY_FILE" ]; then
         habits_section=$(sed -n '/^## Habits/,/^## /p' "$ENTRY_FILE" | head -n -1 || true)
-
-        idx=0
         for h in "${HABIT_NAMES[@]}"; do
             if echo "$habits_section" | grep -qiE "^- \[[xX]\] +$h" 2>/dev/null; then
                 day_checks_row="${day_checks_row}| [x]"
                 HABIT_COUNTS[$h]=$((${HABIT_COUNTS[$h]} + 1))
-
                 HABIT_CURRENT_STREAK[$h]=$((${HABIT_CURRENT_STREAK[$h]} + 1))
                 if [ ${HABIT_CURRENT_STREAK[$h]} -gt ${HABIT_STREAKS[$h]} ]; then
                     HABIT_STREAKS[$h]=${HABIT_CURRENT_STREAK[$h]}
@@ -100,21 +49,15 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
                 day_checks_row="${day_checks_row}| [ ]"
                 HABIT_CURRENT_STREAK[$h]=0
             fi
-            idx=$((idx + 1))
         done
     else
         for h in "${HABIT_NAMES[@]}"; do
             day_checks_row="${day_checks_row}| [ ]"
-        done
-        for h in "${HABIT_NAMES[@]}"; do
             HABIT_CURRENT_STREAK[$h]=0
         done
     fi
-
     DAY_CHECKS+=("$day_checks_row")
 done
-
-# --- Build the full monthly habit table (for standalone output) ---
 
 MONTHLY_TABLE="# Habit Tracker -- $month_name $YEAR
 
@@ -151,89 +94,60 @@ MONTHLY_TABLE="$MONTHLY_TABLE
 
 *Auto-generated from daily journal entries.*"
 
-# --- Build the weekly review table (Mon-Sun, last 7 days) ---
-
 TODAY=$(date '+%Y-%m-%d')
-DOW=$(date -d "$TODAY" '+%u' 2>/dev/null || date -j -f '%Y-%m-%d' "$TODAY" '+%u' 2>/dev/null)
+DOW=$(date -d "$TODAY" '+%u' 2>/dev/null)
 DAYS_BACK=$((DOW - 1))
-WEEK_START=$(date -d "$TODAY - $DAYS_BACK days" '+%Y-%m-%d' 2>/dev/null || date -v-${DAYS_BACK}d '+%Y-%m-%d' 2>/dev/null)
+WEEK_START=$(date -d "$TODAY - $DAYS_BACK days" '+%Y-%m-%d' 2>/dev/null)
 
 WEEKLY_HEADER="| Habit | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Streak |"
 WEEKLY_SEP="|-------|-----|-----|-----|-----|-----|-----|-----|--------|"
-
 WEEKLY_ROWS=""
-idx=0
+
 for h in "${HABIT_NAMES[@]}"; do
     row="| $h"
-    week_counts=0
-    week_streak=0
-    current_run=0
-
+    week_counts=0; week_streak=0; current_run=0
     for i in $(seq 0 6); do
-        CHECK_DATE=$(date -d "$WEEK_START + $i days" '+%Y-%m-%d' 2>/dev/null || date -v+${i}d -j -f '%Y-%m-%d' "$WEEK_START" '+%Y-%m-%d' 2>/dev/null)
-        cy=$(echo "$CHECK_DATE" | cut -d'-' -f1)
-        cm=$(echo "$CHECK_DATE" | cut -d'-' -f2)
-        cmonth=$(date -d "$CHECK_DATE" '+%B' 2>/dev/null || date -j -f '%Y-%m-%d' "$CHECK_DATE" '+%B' 2>/dev/null)
-        if [ -z "$cmonth" ]; then
-            case "$cm" in
-                01) cmonth="January" ;; 02) cmonth="February" ;; 03) cmonth="March" ;;
-                04) cmonth="April" ;; 05) cmonth="May" ;; 06) cmonth="June" ;;
-                07) cmonth="July" ;; 08) cmonth="August" ;; 09) cmonth="September" ;;
-                10) cmonth="October" ;; 11) cmonth="November" ;; 12) cmonth="December" ;;
-            esac
-        fi
+        CHECK_DATE=$(date -d "$WEEK_START + $i days" '+%Y-%m-%d' 2>/dev/null)
+        cy=$(echo "$CHECK_DATE" | cut -d'-' -f1); cm=$(echo "$CHECK_DATE" | cut -d'-' -f2)
+        cmonth=$(date -d "$CHECK_DATE" '+%B' 2>/dev/null)
+        if [ -z "$cmonth" ]; then case "$cm" in
+            01) cmonth="January" ;; 02) cmonth="February" ;; 03) cmonth="March" ;;
+            04) cmonth="April" ;; 05) cmonth="May" ;; 06) cmonth="June" ;;
+            07) cmonth="July" ;; 08) cmonth="August" ;; 09) cmonth="September" ;;
+            10) cmonth="October" ;; 11) cmonth="November" ;; 12) cmonth="December" ;;
+        esac; fi
         CHECK_FILE="$REPO_ROOT/$cy/$cm-$(echo "$cmonth" | tr '[:upper:]' '[:lower:]')/$CHECK_DATE.md"
-
         if [ -f "$CHECK_FILE" ]; then
             habits_section=$(sed -n '/^## Habits/,/^## /p' "$CHECK_FILE" | head -n -1 || true)
             if echo "$habits_section" | grep -qiE "^- \[[xX]\] +$h" 2>/dev/null; then
                 row="$row| [x]"
                 week_counts=$((week_counts + 1))
                 current_run=$((current_run + 1))
-                if [ $current_run -gt $week_streak ]; then
-                    week_streak=$current_run
-                fi
+                [ $current_run -gt $week_streak ] && week_streak=$current_run
             else
-                row="$row| [ ]"
-                current_run=0
+                row="$row| [ ]"; current_run=0
             fi
         else
-            row="$row| [ ]"
-            current_run=0
+            row="$row| [ ]"; current_run=0
         fi
     done
-
     row="$row| $week_counts | $week_streak |"
     WEEKLY_ROWS="$WEEKLY_ROWS
 $row"
-    idx=$((idx + 1))
 done
 
 WEEKLY_TABLE="$WEEKLY_HEADER
 $WEEKLY_SEP$WEEKLY_ROWS"
-
-# --- Output or fill review ---
 
 if [ "$FILL_REVIEW" = true ]; then
     REVIEW_DIR="$REPO_ROOT/reviews"
     if [ -d "$REVIEW_DIR" ]; then
         LATEST_REVIEW=$(ls -1t "$REVIEW_DIR"/*.md 2>/dev/null | head -n1 || true)
         if [ -n "$LATEST_REVIEW" ]; then
-            # Replace the placeholder habit table in the review
-            # Find the table block and swap it
             REVIEW_CONTENT=$(cat "$LATEST_REVIEW")
-
-            # Extract everything before the habit table header
-            BEFORE=$(echo "$REVIEW_CONTENT" | sed -n '1,/^| Habit | Mon |/p' | sed '$d')
-
-            # Extract everything after the table (starting from "*Run \`" or "## Looking")
-            AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^\*Run \`\./,$p' | sed '1d')
-            # Fallback: look for "## Looking Ahead"
-            if [ -z "$AFTER" ]; then
-                AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^## Looking Ahead/,$p')
-            fi
-
-            # Build new review content
+            BEFORE=$(echo "$REVIEW_CONTENT" | sed -n '1,/^## Habit Check-In/p' | sed '$d')
+            AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^\*Run \`\./,$p')
+            if [ -z "$AFTER" ]; then AFTER=$(echo "$REVIEW_CONTENT" | sed -n '/^## Looking Ahead/,$p'); fi
             NEW_CONTENT="$BEFORE
 ## Habit Check-In
 
@@ -242,11 +156,9 @@ if [ "$FILL_REVIEW" = true ]; then
 $WEEKLY_TABLE
 
 $AFTER"
-
             echo "$NEW_CONTENT" > "$LATEST_REVIEW"
             git add "$LATEST_REVIEW"
-
-            cat <<EOF
+            cat <<EOOUT
 +---------------------------------------------------+
 |              HABITS FILLED IN REVIEW               |
 +---------------------------------------------------+
@@ -254,15 +166,13 @@ $AFTER"
 |                                                   |
 |  Weekly habit data injected successfully.         |
 +---------------------------------------------------+
-EOF
+EOOUT
         else
             echo "No weekly review found. Outputting habit data:"
-            echo ""
             echo "$WEEKLY_TABLE"
         fi
     else
         echo "No reviews directory. Outputting habit data:"
-        echo ""
         echo "$WEEKLY_TABLE"
     fi
 else
