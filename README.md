@@ -13,7 +13,11 @@ A text-based calendar and journaling system powered by Git. Designed for low-fri
 
 ```
 agenic-journal/
-├── README.md
+├── .githooks/              # Custom Git hooks (auto date-stamping)
+├── .journal-log            # Lightweight commit rhythm tracker
+├── scripts/
+│   ├── setup-hooks         # Enable hooks after cloning
+│   └── new-day             # Scaffold a new daily entry
 ├── templates/
 │   └── daily.md
 ├── 2026/
@@ -27,10 +31,36 @@ agenic-journal/
 
 ## Quick Start
 
-1. Each day gets its own file: `YYYY/MM-MONTH/YYYY-MM-DD.md`
-2. Copy `templates/daily.md` to start your day
-3. Fill it out as you go — check off tasks, jot reflections, log time blocks
-4. Commit whenever you want a snapshot (morning plan, midday check-in, evening wrap)
+### 1. Enable Git Hooks (one-time setup)
+
+```bash
+./scripts/setup-hooks
+```
+
+This enables automated commit messages with timestamps and a lightweight journaling rhythm log.
+
+### 2. Create Today's Entry
+
+```bash
+./scripts/new-day           # Creates entry for today
+./scripts/new-day 2026-07-15  # Creates entry for a specific date
+```
+
+This scaffolds a new file from the template at the correct path:
+```
+2026/07-july/2026-07-13.md
+```
+
+### 3. Journal & Commit
+
+Fill out your entry as you go. Commit whenever you want a snapshot:
+
+```bash
+git add .
+git commit  # Message auto-generated: "2026-07-13 — journal update (afternoon, 14:32)"
+```
+
+The hooks detect journal files and auto-format your commit message with the date, time of day, and task progress.
 
 ## Journal as Calendar
 
@@ -45,6 +75,9 @@ git log --since="1 week ago" --oneline
 
 # Find when you wrote about something
 grep -r "keyword" 2026/
+
+# Check your journaling rhythm
+cat .journal-log
 ```
 
 ## Daily Entry Format
@@ -55,6 +88,28 @@ See [templates/daily.md](templates/daily.md) for the full template. Each day inc
 - **Time Blocks**: Chunked sessions with focus tasks
 - **Log**: Stream-of-consciousness notes, distractions, wins
 - **Evening**: Reflection, gratitude, tomorrow's setup
+
+## Git Hooks
+
+### `prepare-commit-msg`
+When you commit a journal entry, this hook auto-generates the commit message:
+
+```
+2026-07-13 — journal update (afternoon, 14:32)
+
+Tasks: 2 completed, 1 added
+```
+
+It detects the time of day (morning/afternoon/evening), extracts the entry date from the filename, and counts your task progress.
+
+### `post-commit`
+After each journal commit, a lightweight entry is appended to `.journal-log`:
+
+```
+[2026-07-13 14:32:00 +0000] a1b2c3d — 2026-07-13 — journal update (afternoon, 14:32)
+```
+
+This lets you track your journaling rhythm over time without heavy analytics.
 
 ## Tips
 

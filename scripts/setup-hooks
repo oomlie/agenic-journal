@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# setup-hooks
+# Run this after cloning the repo to enable the custom Git hooks.
+#
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+
+if [ -z "$REPO_ROOT" ]; then
+    echo "Error: Not inside a Git repository."
+    exit 1
+fi
+
+echo "Enabling custom hooks for agenic-journal..."
+
+# Point Git to our .githooks directory
+git config core.hooksPath "$REPO_ROOT/.githooks"
+
+# Make hooks executable
+chmod +x "$REPO_ROOT"/.githooks/*
+
+echo "Hooks enabled from: $REPO_ROOT/.githooks"
+echo ""
+echo "Active hooks:"
+ls -1 "$REPO_ROOT"/.githooks/
