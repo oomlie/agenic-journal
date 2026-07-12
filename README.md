@@ -17,7 +17,8 @@ agenic-journal/
 ├── .journal-log            # Lightweight commit rhythm tracker
 ├── scripts/
 │   ├── setup-hooks         # Enable hooks after cloning
-│   └── new-day             # Scaffold a new daily entry
+│   ├── new-day             # Scaffold a new daily entry
+│   └── log                 # One-liner quick log to today's entry
 ├── templates/
 │   └── daily.md
 ├── 2026/
@@ -51,9 +52,33 @@ This scaffolds a new file from the template at the correct path:
 2026/07-july/2026-07-13.md
 ```
 
-### 3. Journal & Commit
+### 3. Log Quick Notes Throughout the Day
 
-Fill out your entry as you go. Commit whenever you want a snapshot:
+```bash
+./scripts/log "got lunch at panda express"
+./scripts/log "meeting running 20 min late"
+./scripts.log "just shipped the feature" -t win
+```
+
+Each note gets timestamped and appended to today's Log section:
+```markdown
+## Log
+
+- 12:34 — got lunch at panda express
+- 14:52 — meeting running 20 min late
+- 17:08 — just shipped the feature #win
+```
+
+Auto-commits with a short message: `[2026-07-13 17:08] just shipped the feature`
+
+**Options:**
+- `-d YYYY-MM-DD` — log to a specific date's entry
+- `-t tag` — add a tag: `#win`, `#struggle`, `#adhd`, `#deepwork`, `#health`
+- `-n` — append without committing (stage only, commit later)
+
+### 4. Journal & Commit
+
+Fill out the rest of your entry as you go. Commit whenever you want a snapshot:
 
 ```bash
 git add .
