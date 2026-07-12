@@ -1,8 +1,4 @@
-# Agenic Journal
-
-    _      _      _
- __(.)< __(.)> __(.)=
- \_)    \_)    \_)
+#Agenic-Journal
 
 A text-based calendar and journaling system powered by Git. Designed for
 low-friction daily tracking, reflection, and task management.
