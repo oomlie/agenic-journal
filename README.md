@@ -21,14 +21,7 @@ agenic-journal/
 |-- .githooks/              # Custom Git hooks (auto date-stamping)
 |-- .journal-log            # Lightweight commit rhythm tracker
 |-- scripts/
-|   |-- setup-hooks         # Enable hooks after cloning
-|   |-- new-day             # Scaffold a new daily entry
-|   |-- log                 # One-liner quick log to today's entry
-|   |-- rollover            # Carry unchecked tasks to today
-|   |-- week-review         # Generate weekly summary (run Sundays)
-|   |-- remember            # Resurface a random past entry
-|   |-- habits              # Tally habit streaks for the month
-|   |-- streak              # Show journaling streaks and stats
+|   |-- journal              # Unified CLI (all commands)
 |-- templates/
 |   |-- daily.md
 |-- reviews/                # Weekly review files
@@ -48,14 +41,14 @@ agenic-journal/
 ### 1. Enable Git Hooks (one-time setup)
 
 ```bash
-./scripts/setup-hooks
+./scripts/journal setup
 ```
 
 ### 2. Create Today's Entry
 
 ```bash
-./scripts/new-day           # Creates entry for today
-./scripts/new-day 2026-07-15  # Creates entry for a specific date
+./scripts/journal new           # Creates entry for today
+./scripts/journal new 2026-07-15  # Creates entry for a specific date
 ```
 
 Output:
@@ -71,8 +64,8 @@ Output:
 ### 3. Log Quick Notes Throughout the Day
 
 ```bash
-./scripts/log "got lunch at panda express"
-./scripts/log "just shipped the feature" -t win
+./scripts/journal log "got lunch at panda express"
+./scripts/journal log "just shipped the feature" -t win
 ```
 
 Each note gets timestamped and appended to today's Log section:
@@ -95,7 +88,7 @@ Output:
 ### 4. Roll Over Yesterday's Tasks
 
 ```bash
-./scripts/rollover          # Carry unchecked tasks -> today
+./scripts/journal rollover          # Carry unchecked tasks -> today
 ```
 
 Output:
@@ -116,7 +109,7 @@ The old tasks are marked `[>]` so you know they travelled.
 ### 5. Weekly Review (Sunday afternoons)
 
 ```bash
-./scripts/week-review       # Summarize the past 7 days
+./scripts/journal review       # Summarize the past 7 days
 ```
 
 Generates a review file in `reviews/2026-W28.md` with:
@@ -130,9 +123,9 @@ Generates a review file in `reviews/2026-W28.md` with:
 ### 6. Memory Resurfacing
 
 ```bash
-./scripts/remember          # Random entry from 30-90 days ago
-./scripts/remember --today  # Entry from exactly 1 year ago
-./scripts/remember 60 120   # Custom range (min max days back)
+./scripts/journal remember          # Random entry from 30-90 days ago
+./scripts/journal remember --today  # Entry from exactly 1 year ago
+./scripts/journal remember 60 120   # Custom range (min max days back)
 ```
 
 Output:
@@ -157,17 +150,17 @@ Daily entries include a Habits section:
 
 Check them off as you go. Then tally:
 ```bash
-./scripts/habits              # Current month's full habit table
-./scripts/habits 2026 07      # Specific month
-./scripts/habits --fill       # Inject into latest weekly review
+./scripts/journal habits              # Current month's full habit table
+./scripts/journal habits 2026 07      # Specific month
+./scripts/journal habits --fill       # Inject into latest weekly review
 ```
 
 ### 8. Streak Counter
 
 ```bash
-./scripts/streak              # All-time stats
-./scripts/streak --month      # This month only
-./scripts/streak --year       # This year only
+./scripts/journal streak              # All-time stats
+./scripts/journal streak --month      # This month only
+./scripts/journal streak --year       # This year only
 ```
 
 Output:
@@ -206,6 +199,23 @@ The fire ASCII grows as your streak does:
 - **7-29 days**: roaring fire
 - **30+ days**: inferno
 
+## Full Command Reference
+
+Run `./scripts/journal help` to see all commands at any time.
+
+```
+COMMANDS
+  new [YYYY-MM-DD]              Create today's entry (or specific date)
+  log "NOTE" [-d DATE] [-t TAG] [-n]  Append a timestamped note
+  rollover [YYYY-MM-DD]         Roll unchecked tasks from yesterday (or date)
+  review [YYYY-MM-DD]           Generate weekly review (current or from date)
+  habits [YYYY MM | --fill]     Tally habit streaks (monthly) or fill review
+  remember [MIN MAX | --today]  Resurface random entry (30-90 days default)
+  streak [--month | --year]     Show journaling streak stats
+  setup                         Enable Git hooks (run once after clone)
+  help                          Show this help
+```
+
 ## Journal as Calendar
 
 Your Git history *is* your calendar. Each commit is a moment in time.
@@ -241,7 +251,7 @@ rhythm tracking.
 ## Sunday Ritual
 
 ```bash
-./scripts/week-review && ./scripts/habits --fill && ./scripts/streak
+./scripts/journal review && ./scripts/journal habits --fill && ./scripts/journal streak
 ```
 
 One command, full weekly retrospective + habit check-in + streak check.
