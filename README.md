@@ -1,9 +1,5 @@
 # Agenic Journal
 
-    _      _      _
- __(.)< __(.)> __(.)=
- \_)    \_)    \_)
-
 A text-based calendar and journaling system powered by Git. Designed for
 low-friction daily tracking, reflection, and task management.
 
@@ -12,7 +8,7 @@ low-friction daily tracking, reflection, and task management.
 - **Text-first**: Everything is plain text -- portable, future-proof, searchable
 - **Git-backed**: Every entry is versioned. Look back at any day, any moment
 - **Low friction**: Minimal structure, maximum flexibility
-- **ADHD-friendly**: Chunked, time-boxed, dopamine-paired
+- **Structured but flexible**: Templated sections with room to deviate
 
 ## Directory Structure
 
@@ -47,6 +43,7 @@ agenic-journal/
 |   |-- new-day.bats
 |   |-- log.bats
 |   |-- rollover.bats
+|   |-- week_review.bats
 |   |-- habits.bats
 |   |-- remember.bats
 |   |-- streak.bats
@@ -242,7 +239,7 @@ One command, full weekly retrospective + habit check-in + streak check.
 ```bash
 nix develop          # Enter dev shell with shellcheck + bats
 nix build            # Build the package
-nix check            # Run shellcheck + bats tests
+nix flake check      # Run shellcheck + bats tests
 ```
 
 ### Without Nix
@@ -260,19 +257,16 @@ bats tests/
 
 ### CI
 
-GitHub Actions runs three jobs on every push/PR:
-1. **shellcheck** -- static analysis of all shell scripts
-2. **bats** -- full test suite
-3. **nix** -- flake build verification
+`.github/workflows/ci.yml` runs `nix flake check` on every push/PR, which in
+turn runs both the shellcheck and bats-core checks defined in `flake.nix`.
 
 ## Tips
 
 - **Commit often**: Each commit is a save point. Don't overthink it.
 - **Phone + keyboard**: Works great with a mobile Git client (Working Copy,
   Termux) + Bluetooth keyboard
-- **A6 friendly**: The template is designed to feel like a pocket notebook --
-  compact and scannable
-- **Tag entries**: Use `#adhd`, `#deepwork`, `#win`, `#struggle` for later
-  filtering
+- **Compact by design**: The template is scannable at a glance, without a lot
+  of scrolling
+- **Tag entries**: Use `#deepwork`, `#win`, `#struggle` for later filtering
 - **All ASCII**: Every output is plain ASCII -- renders cleanly in any terminal,
   editor, or pager

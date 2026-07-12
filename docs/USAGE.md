@@ -185,7 +185,6 @@ Auto-generates commit messages for journal entries by analyzing the diff:
 2026-07-13 -- journal update (afternoon, 14:32)
 
 Tasks: 2 completed, 1 added
-Log: 3 entries
 ```
 
 ### `post-commit`
@@ -193,7 +192,7 @@ Log: 3 entries
 Appends a lightweight entry to `.journal-log` after each journal commit:
 
 ```
-2026-07-13T14:32:05+0000  3 files changed, 12 insertions(+)
+[2026-07-13 14:32:05 +0000] a1b2c3d -- 2026-07-13 -- journal update (afternoon, 14:32)
 ```
 
 This creates a rhythm log you can grep for journaling patterns.
@@ -220,22 +219,22 @@ Check them off as you complete them:
 - [ ] Meditate
 ```
 
-Then run `./scripts/habits` to see your monthly tally:
+Then run `./scripts/habits` to see your monthly tally. It writes a full table
+to `<year>/<month>/habits.md` and prints a summary:
 
 ```
-+---------------------------------------------------+
-|               HABIT TRACKER                        |
-|               July 2026                            |
-+---------------------------------------------------+
-|  Habit      | 01 02 03 04 05 06 07 ...
-|  -----------+------------------------------------
-|  Exercise   | [x] [x] [.] [x] [x] [.] [x] ...
-|  Read       | [x] [.] [x] [x] [.] [x] [x] ...
-|  Meditate   | [.] [.] [x] [.] [.] [.] [x] ...
-+---------------------------------------------------+
-|  [x] = done  [.] = missed  [>] = carried         |
-+---------------------------------------------------+
+Habit tracker saved: 2026/07-july/habits.md
+
+Summary for 2026-07:
+  Exercise: 23 days, best streak: 12
+  Read: 18 days, best streak: 6
+  Meditate: 15 days, best streak: 4
+  Deep Work: 20 days, best streak: 9
+  Sleep 8h: 25 days, best streak: 14
 ```
+
+`habits.md` itself starts with a `# Habit Tracker -- 2026-07` heading followed
+by a markdown table with one column per day and a Total/Streak column per habit.
 
 ### Adding Custom Habits
 
@@ -250,32 +249,54 @@ Every Sunday (or whenever you run `./scripts/week-review`), a review file is
 generated in `reviews/YYYY-W##.md`:
 
 ```markdown
-# Weekly Review -- 2026-W28
-## Period: 2026-07-06 to 2026-07-12
+# Week 28 Review -- 2026-07-06 to 2026-07-12
 
-### Stats
-- Entries: 7/7 days
-- Tasks completed: 12
-- Tasks rolled: 3
-- Average energy: 6.8/10
+## Snapshot
+
+| Metric | Value |
+|--------|-------|
+| Days Journaled | 7 / 7 |
+| Tasks Completed | 12 / 15 (80%) |
+| Tasks Rolled Over | 3 |
+| Avg Energy | 6 / 10 |
 
 ### Top Tags
-- #deepwork: 5
-- #win: 4
-- #struggle: 2
+- #deepwork
+- #win
 
-### Wins
-- shipped the new feature
-- had a great 1:1 with sarah
+---
 
-### Struggles
-- scope creep on the api redesign
+## Wins This Week
+**Monday**: 1. shipped the new feature
 
-### Daily Logs
-[compiled from each day's Log section]
+---
 
-### Habits
-[injected via `./scripts/habits --fill`]
+## Struggles / Patterns
+**Wednesday**: scope creep on the api redesign
+
+---
+
+## Daily Logs
+### Monday
+- 09:15 -- meeting with sarah about the api
+
+---
+
+## Habit Check-In
+
+*Run `./scripts/habits --fill` to auto-fill from daily entries.*
+
+| Habit | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Streak |
+|-------|-----|-----|-----|-----|-----|-----|-----|--------|
+| Exercise | | | | | | | | |
+
+---
+
+## Looking Ahead
+
+- [ ] Priority for next week:
+- [ ] Something to try differently:
+- [ ] One thing to look forward to:
 ```
 
 ---
@@ -300,10 +321,10 @@ This gives you:
 - **Commit often**: Every `./scripts/log` is worth committing. The hooks handle
   the message.
 - **Tag everything**: Use consistent tags for filtering later (`#win`,
-  `#struggle`, `#deepwork`, `#adhd`)
+  `#struggle`, `#deepwork`)
 - **Phone friendly**: Works great with Working Copy (iOS) or Termux (Android)
   plus a Bluetooth keyboard
-- **A6 mindset**: The template is compact -- designed to feel like a pocket
-  notebook
+- **Compact by design**: The template is scannable at a glance, without a lot
+  of scrolling
 - **All ASCII**: Every output is plain ASCII for universal terminal compatibility
 - **Search with git**: `git log -S "keyword"` searches across all history
