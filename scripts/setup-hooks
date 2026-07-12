@@ -1,7 +1,0 @@
-#!/bin/bash
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [ -z "$REPO_ROOT" ]; then echo "Error: Not inside a Git repository."; exit 1; fi
-echo "Enabling custom hooks for agenic-journal..."
-git config core.hooksPath "$REPO_ROOT/.githooks"
-chmod +x "$REPO_ROOT"/.githooks/*
-echo "Hooks enabled from: $REPO_ROOT/.githooks"
