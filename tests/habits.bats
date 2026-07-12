@@ -20,9 +20,11 @@ load test_helper
 "
   run_script habits 2026 07
   [ "$status" -eq 0 ]
-  [[ "$output" == *"HABIT TRACKER"* ]]
+  [[ "$output" == *"Habit tracker saved"* ]]
   [[ "$output" == *"Exercise"* ]]
   [[ "$output" == *"Read"* ]]
+  # The generated table file itself should carry the real heading
+  grep -q "^# Habit Tracker -- 2026-07$" "2026/07-july/habits.md"
 }
 
 @test "habits seeds streaks across month boundary" {
@@ -32,7 +34,8 @@ load test_helper
 ## Habits
 - [x] Exercise
 "
-  # July 1 also checked
+  # July 1 also checked -- streak should span the boundary and read 2,
+  # not reset to 1 as it did before the month-boundary seeding fix (bug c).
   mkentry 2026-07-01 "# 2026-07-01 -- Wednesday
 
 ## Habits
@@ -40,5 +43,5 @@ load test_helper
 "
   run_script habits 2026 07
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Exercise"* ]]
+  [[ "$output" == *"Exercise: 1 days, best streak: 2"* ]]
 }
