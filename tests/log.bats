@@ -39,7 +39,11 @@ load test_helper
   grep -q "tagged note" 20*/*-*/"$file".md 2>/dev/null
 }
 
-@test "log fails when entry does not exist" {
+@test "log auto-creates today's entry when it does not exist" {
   run_script log "orphan note"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"LOGGED"* ]]
+  local today
+  today="$(date +%Y-%m-%d)"
+  grep -q "orphan note" 20*/*-*/"$today".md
 }

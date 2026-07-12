@@ -22,6 +22,8 @@ load test_helper
 @test "new-day refuses to overwrite existing entry" {
   mkentry 2026-07-20 "existing entry"
   run_script new-day 2026-07-20
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 0 ]
   [[ "$output" == *"already exists"* ]]
+  # Original content must be untouched
+  grep -qx "existing entry" "2026/07-july/2026-07-20.md"
 }

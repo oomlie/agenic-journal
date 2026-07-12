@@ -56,9 +56,9 @@ mkentry() {
   local year="${date_str:0:4}"
   local month_num="${date_str:5:2}"
 
-  # Get month name from common.sh
+  # Get month name from common.sh (lowercased to match journal_entry_path)
   local month_name
-  month_name="$(bash -c "source scripts/lib/common.sh; journal_month_name $month_num")"
+  month_name="$(bash -c "source scripts/lib/common.sh; journal_month_name $month_num" | tr '[:upper:]' '[:lower:]')"
 
   local dir="$year/$month_num-$month_name"
   mkdir -p "$dir"
