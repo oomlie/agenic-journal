@@ -10,6 +10,8 @@ set -euo pipefail
 # Single source of truth: the log-line timestamp format.
 # Both the producer (log) and the consumer (week-review) must use this.
 # ---------------------------------------------------------------------------
+# Used by log and week-review after sourcing this file.
+# shellcheck disable=SC2034
 readonly JOURNAL_LOG_LINE_REGEX='^- [0-9]{2}:[0-9]{2} --'
 
 # ---------------------------------------------------------------------------

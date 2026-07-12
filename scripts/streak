@@ -51,7 +51,7 @@ fi
 LONGEST_STREAK=0; CURRENT_RUN=0; PREV_EPOCH=0
 for d in $(echo "$DATES" | sort); do
     THIS_EPOCH=$(journal_epoch "$d")
-    if [ $PREV_EPOCH -eq 0 ]; then CURRENT_RUN=1
+    if [ "$PREV_EPOCH" -eq 0 ]; then CURRENT_RUN=1
     else
         DIFF=$(( (THIS_EPOCH - PREV_EPOCH) / 86400 ))
         if [ $DIFF -eq 1 ]; then CURRENT_RUN=$((CURRENT_RUN + 1))
@@ -69,7 +69,7 @@ DAYS_BACK=$((DOW - 1))
 WEEK_START=$(journal_add_days "$(date '+%Y-%m-%d')" "-$DAYS_BACK")
 THIS_WEEK_COUNT=0
 for i in $(seq 0 6); do
-    CHECK=$(journal_add_days "$WEEK_START" $i)
+    CHECK=$(journal_add_days "$WEEK_START" "$i")
     echo "$DATES" | grep -qx "$CHECK" && THIS_WEEK_COUNT=$((THIS_WEEK_COUNT + 1))
 done
 

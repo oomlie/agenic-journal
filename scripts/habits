@@ -62,7 +62,7 @@ done
 
 DAY_CHECKS=()
 
-for day in $(seq -w 1 $DAYS_IN_MONTH); do
+for day in $(seq -w 1 "$DAYS_IN_MONTH"); do
     ENTRY_FILE="$MONTH_DIR/$YEAR-$MONTH-$day.md"
     day_checks_row=""
     if [ -f "$ENTRY_FILE" ]; then
@@ -72,7 +72,7 @@ for day in $(seq -w 1 $DAYS_IN_MONTH); do
                 day_checks_row="${day_checks_row}| [x]"
                 HABIT_COUNTS[$h]=$((${HABIT_COUNTS[$h]} + 1))
                 HABIT_CURRENT_STREAK[$h]=$((${HABIT_CURRENT_STREAK[$h]} + 1))
-                if [ ${HABIT_CURRENT_STREAK[$h]} -gt ${HABIT_STREAKS[$h]} ]; then
+                if [ "${HABIT_CURRENT_STREAK[$h]}" -gt "${HABIT_STREAKS[$h]}" ]; then
                     HABIT_STREAKS[$h]=${HABIT_CURRENT_STREAK[$h]}
                 fi
             else
@@ -93,7 +93,7 @@ done
 MONTHLY_TABLE="# Habit Tracker -- $YEAR-$MONTH
 
 | Habit"
-for day in $(seq -w 1 $DAYS_IN_MONTH); do
+for day in $(seq -w 1 "$DAYS_IN_MONTH"); do
     day_num=$(echo "$day" | sed 's/^0//')
     MONTHLY_TABLE="$MONTHLY_TABLE | $day_num"
 done
@@ -101,7 +101,7 @@ MONTHLY_TABLE="$MONTHLY_TABLE | Total | Streak |"
 
 MONTHLY_TABLE="$MONTHLY_TABLE
 |-------"
-for day in $(seq 1 $DAYS_IN_MONTH); do
+for day in $(seq 1 "$DAYS_IN_MONTH"); do
     MONTHLY_TABLE="$MONTHLY_TABLE|------"
 done
 MONTHLY_TABLE="$MONTHLY_TABLE|-------|--------|"
@@ -139,7 +139,7 @@ for h in "${HABIT_NAMES[@]}"; do
     row="| $h"
     week_counts=0; week_streak=0; current_run=0
     for i in $(seq 0 6); do
-        CHECK_DATE=$(journal_add_days "$WEEK_START" $i)
+        CHECK_DATE=$(journal_add_days "$WEEK_START" "$i")
         CHECK_FILE=$(journal_entry_path "$REPO_ROOT" "$CHECK_DATE")
         if [ -f "$CHECK_FILE" ]; then
             habits_section=$(sed -n '/^## Habits/,/^## /p' "$CHECK_FILE" | head -n -1 || true)
@@ -166,6 +166,8 @@ $WEEKLY_SEP$WEEKLY_ROWS"
 if [ "$FILL_REVIEW" = true ]; then
     REVIEW_DIR="$REPO_ROOT/reviews"
     if [ -d "$REVIEW_DIR" ]; then
+        # ls -1t is portable across GNU/BSD; find -printf is not.
+        # shellcheck disable=SC2012
         LATEST_REVIEW=$(ls -1t "$REVIEW_DIR"/*.md 2>/dev/null | head -n1 || true)
         if [ -n "$LATEST_REVIEW" ]; then
             REVIEW_CONTENT=$(cat "$LATEST_REVIEW")
