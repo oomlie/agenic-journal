@@ -86,7 +86,7 @@
         checks = {
           # Fails the check on any real finding -- do not add `|| true` here.
           shellcheck = pkgs.runCommand "shellcheck" {} ''
-            ${pkgs.shellcheck}/bin/shellcheck --shell=bash \
+            ${pkgs.shellcheck}/bin/shellcheck --shell=bash --source-path=SCRIPTDIR \
               ${./scripts}/lib/common.sh \
               ${./scripts}/new-day ${./scripts}/log ${./scripts}/rollover \
               ${./scripts}/week-review ${./scripts}/remember \

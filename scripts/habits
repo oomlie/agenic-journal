@@ -94,7 +94,7 @@ MONTHLY_TABLE="# Habit Tracker -- $YEAR-$MONTH
 
 | Habit"
 for day in $(seq -w 1 "$DAYS_IN_MONTH"); do
-    day_num=$(echo "$day" | sed 's/^0//')
+    day_num="${day#0}"
     MONTHLY_TABLE="$MONTHLY_TABLE | $day_num"
 done
 MONTHLY_TABLE="$MONTHLY_TABLE | Total | Streak |"

@@ -158,4 +158,6 @@ echo "  Days journaled: ${#ENTRY_FILES[@]}/7"
 echo "  Tasks: $COMPLETED_TASKS/$TOTAL_TASKS completed ($TASK_RATE%)"
 echo "  Rolled over: $ROLLED_TASKS"
 echo "  Avg energy: $ENERGY_AVG/10"
+# sed indents every line of a multi-line variable; not a single-substitution case.
+# shellcheck disable=SC2001
 [ -n "$TOP_TAGS" ] && { echo "  Top tags:"; echo "$TOP_TAGS" | sed 's/^/    /'; }
